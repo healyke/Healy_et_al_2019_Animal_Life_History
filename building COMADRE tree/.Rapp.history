@@ -1,0 +1,18 @@
+load("/Users/kevinhealy/Documents/SIDER/data/combined_trees.rda")
+load("/Users/kevinhealy/Documents/SIDER/data/isotope_data.rda")
+load("/Users/kevinhealy/Documents/SIDER/data/combined_trees.rda")
+load("/Users/kevinhealy/Documents/SIDER/data/isotope_data.rda")
+combined_trees
+isotope_data
+load("/Users/kevinhealy/Documents/SIDER/data/combined_trees.rda")
+combined_trees
+ls
+ls()
+combined
+load("/Users/kevinhealy/Documents/SIDER/data/combined_trees.rda")
+combined_trees  <- combined
+class(combined_trees)
+combined_trees[1]
+save(combined_trees, file = "combined_trees.rda")
+getwd()
+mean(c(259,285))

@@ -1,23 +1,21 @@
 ---
 title: "Phylogeny_construction"
 author: "Kevin Healy"
-date: "16/02/2019"
+date: "20/05/2019"
 output:
   pdf_document: default
   html_document: default
 ---
 
-This script builds a set of 100 phylogenies by joining the super trees form xx xx xx together and adding error at each node join based on fossil evidence. This is the set of phylogenies used for the analysis in the paper Healy et al. Beyound the fast-slow continuum.
-
-P.S I cant spell so just go with it.
-
+This script builds a set of 100 phylogenies by joining various phylogenies together and adding error at each node based on the first apprearence in fossil evidence. This set of phylogenies is then used for the subsequent analysis in the paper Healy et al. 2019.
 
 #Packages and Data
-First lets load the packages. Apart from `mulTree`, which is available on github, all other packages are on CRAN
+First lets load the packages. Apart from `mulTree`, which is available on github, all other packages are on CRAN.
+
+mulTree is a package designed to run multiple phylogenies in the MCMCglmm function and we will use the multip.phylo formate to store our phylogenies for later analysis. It is available to download from https://github.com/TGuillerme/mulTree
+
 ```{r load up packages, include=TRUE}
 
-###mulTree is a package designed to run multiple phylogenies in the MCMCglmm function
-#It is available to download from xxxxxx
 require(mulTree)
 
 library(devtools)
@@ -30,17 +28,8 @@ library(phytools)
 
 
 
-Now let load the demography dataset so that we can match up our species with the phylogeny. For the paper we used a version of COMADRE which was released with the publication, however, check xxx for potential updates.
-```{r load data, include=TRUE}
-
-load("COMADRE_vX.RData")
-
-```
-
-
-Now lets load some functions that were built for this job. 
-Demography_functions has functions related to calulating demography elements
-phylo_bind_functions has functions to build the phylogenies and include error in the nodes joining together trees.
+Lets also load some functions that we built specifically for this analysis 
+The Demography_functions script has functions related to calculating demography elements while phylo_bind_functions script has functions to build the phylogenies and include error in the nodes joining together trees. These scripts both available on the Healy_et_al_2019_Animal_Life_History github repository.
 
 ```{r load additional functions, include=TRUE}
 
@@ -51,21 +40,33 @@ source("phylo_bind_functions.R")
 ```
 
 
-Lets now upload each of the phylogenies we are going to use to build our superdooper tree
+Now let load the demography dataset so that we can match up our species with the phylogeny. For the paper we used a version of COMADRE which was released with the publication, however, check xxx for potential updates.
+```{r load data, include=TRUE}
+
+load("COMADRE_v_2.0.0.9.RData")
+
+```
+
+
+Lets now upload each of the phylogenies we are going to use to build our super-dooper tree.
+We used the Metazoan phylogeny from the Open Tree of Life project (https://ot39.opentreeoflife.org/opentree/argus/opentree10.4@ott93302)  as a backbone. For Mammals we used a distribution of 100 trees from Kuhn et al 2011. For Aves we used the Jetz et al 2012 distribution of trees. For lizards we used the Pyron et al xx phylogeny. 
+
+#Please note that as the phylogenies are too large to host on Github the phylogenies used need to be downloaded seperately.
+#However we do include the output distribution of tree COMADRE_100_phylo_feb_2019.tre on the repository.
 
 ```{r load trees, include=TRUE}
 
-#the metazoan tree as a backbone is from xxxx
+#Metazoan backbone
 met_tree <- read.tree("metazoa.tre")
 met_tree  <- makeLabel(met_tree) 
 
-#the mammal tree is from xxxx
+#Mammal phylogeny
 mammal_phy <- read.nexus("FritzTree.rs200k.100trees.tre")
 
-#the aves tree is from xxxx
+#Aves phylogeny
 aves_phy <- read.tree("BirdzillaHackett10.tre")
 
-#the lizard tree is from xxxx
+#Lizard phylogeny
 Lizard_phy <- read.tree("liz_and_snake_time_tree.txt")
 #the makeLabel functions deals with a dublicated name problem caused by polynomies in the tree
 lizard_phy<-makeLabel(Lizard_phy)
@@ -178,7 +179,7 @@ full_uni <- data.frame(full_uni,species_two = rep(0, length(full_uni[,1])))
 ```
 
 
-Now we match up the species from the taxinomic groups in our dataset which we dont have a dated phylogeny.
+Now we match up the species from the taxonomic groups in our dataset which we do not have a dated phylogeny.
 ```{r match taxons, include=TRUE}
 ###for taxinomic groups without a dated tree we need to handle them more directly
 taxa_ott_match <- full_uni[full_uni$taxonomic_class %in% c("Actinopterygii","Amphibia","Anthozoa", "Bivalvia", "Insecta",
@@ -214,7 +215,7 @@ for(i in 1:(length(full_uni$species_match))){
 ```
 
 
-Next we deal with the synomoms in the aves phylogeny
+Next we deal with the synonyms in the aves phylogeny
 ```{r aves synomoms, include=TRUE}
 
 #####The following species need to be named to match the phylogenies.
@@ -250,9 +251,9 @@ full_uni$species_two <- species_two
 
 ```
 
-We now start with aves and work backward adding each taxinomic groups and there phylogeny as we meet them. First up is the common ancestor between the two crocodiles species in our analysis
+We now start with aves and work backward adding each taxonomic groups and there phylogeny as we meet them. First up is the common ancestor between the two crocodiles species in our analysis
 
-We scale the tree using the Grafen transformation to refect the divergence time for the last common ancestor between our cros species which is between 10.77mya and 16.7mya. See Srikulnath, K; Thapana, W; Muangmai, N (2015). "Role of chromosome changes in Crocodylus evolution and diversity".Genomics Inform. 13 (4): 102–111.
+We scale the tree using the Grafen transformation to reflect the divergence time for the last common ancestor between our Croc species which is between 10.77mya and 16.7mya. See Srikulnath, K; Thapana, W; Muangmai, N (2015). "Role of chromosome changes in Crocodylus evolution and diversity".Genomics Inform. 13 (4): 102–111.
 
 ```{r croc it up, include=TRUE}
 full_mcl_croc <- full_uni[(full_uni$species_two %in% cror_names),]
@@ -263,7 +264,7 @@ tree_croc$edge.length <- tree_croc$edge.length*13.735
 
 ```
 
-We now graft these two sepcies onto the aves tree with error using our jiggle.bind function.
+We now graft these two species onto the aves tree with error using our jiggle.bind function.
 ```{r croc v aves, include=TRUE}
 
 croc_bird_o <- jiggle.bind(x = tree_croc, 
@@ -275,8 +276,8 @@ croc_bird_ages <- croc_bird_o[[2]]
 ```
 
 
-Using the last tree we graft on the nest group, the tutles. We use a spit between the Pleurodira and the Cryptodira as 100mya.
-The common ancestor between aves/cros and turtles was taken from http://onlinelibrary.wiley.com/doi/10.1111/ede.12081/full
+Using the last tree we graft on the nest group, the turtles. We use a spit between the Pleurodira and the Cryptodira as 100mya.
+The common ancestor between aves/Croc and turtles was taken from http://onlinelibrary.wiley.com/doi/10.1111/ede.12081/full
 
 
 ```{r croc_aves v tutles, include=TRUE}
@@ -365,7 +366,7 @@ deuterostome_tree <-  bind_single(tree = fish_tetrapod_tree, species = shark_nam
 ```
 
 
-Now just the rest of the Bilaterial animals
+Now just the rest of the Bilateral animals
 
 ```{r verts v anything else with a brain, include=TRUE}
 proto_animals  <- full_uni[full_uni$taxonomic_class %in% c("Bivalvia", "Gastropoda",
@@ -437,7 +438,7 @@ for(i in 1:length(mono_clean)){
 
 ```
 
-finaly we rename the tips so that they will match the COMADRE species names for the rest of the analysis
+Finally we rename the tips so that they will match the COMADRE species names for the rest of the analysis
 
 ```{r finishing the deed, include=TRUE}
 ##now lets rename the tips back to match the COMADRE species

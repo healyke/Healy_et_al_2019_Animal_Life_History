@@ -7,9 +7,12 @@ output:
   html_document: default
 ---
 
-This document outlines the calulation of the metrics associated with the Axis of demography paper Healy et al. Beyound the fast slow continuum.
 
-```{r install_packages}
+This document outlines the calculation of the life history metrics associated with the Axis of demography paper Healy et al. 2019.
+
+#Packages and Data
+
+```{r install_packages, include=TRUE, warning = FALSE}
 library(popbio)
 library(popdemo)
 library(ape)
@@ -20,42 +23,47 @@ library(mulTree)
 library(ineq)
 ```
 
-The data is from a version of the COMADRE database released with this paper. This may have been updated since so check out for more species or corrections to certain species in the datset here (give website link)
+The data is from a version of the COMADRE database released with this paper. This may have been updated since so check out  the on-line database for updates (https://www.compadre-db.org/Data/Comadre)
 
-```{r data}
+```{r data , include=TRUE, warning = FALSE}
 
-load("COMADRE_vX.RData")
+load("COMADRE_v_2.0.0.9.RData")
 
 source("Demography_functions.R")
 ```
 
-Load in the phylogeny and plot the first tree in the distribution
-```{r phylogeny}
+Load in the distribution of trees that was created in the Phylogeny_construction script and lets plot the first tree in the distribution.
 
-com_tree <- read.tree("COMADRE_100_phylo_feb_2019.tre")
+```{r phylogeny, warning = FALSE, fig.align ='center'}
+
+com_tree <- read.tree("COMADRE_100_phylo.tre")
 plot(com_tree[[1]], cex = 0.2, type = "fan")
 ```
 
 
-Next we load in the trait data collated from the litrature
-```{r trait data}
+Next we load in the trait data collated from the literature, see the supplementary methods for further description of these data.
+```{r trait data , warning = FALSE}
 
-trophic_data <- read.csv("Trophic_data_June16_2017.csv", 
+trophic_data <- read.csv("Supplementary_data.csv", 
                          sep = ",", header = T)
 
 ```
 
 
-Let also add some human demography from other sources external to COMADRE
-```{r human data,  error = FALSE}
-#load("PPMs Eusrostat 100x100.Rdata")
+Let also add some human demography from Keyfitz and Flieger 1968, 1971, 1990.
+```{r human data,  error = FALSE, warning = FALSE}
+
 load("keyfitz_Agam_100x100.Rdata")
+
 ```
 
 
-Next we subset the compadre dataset so that only matrices are kept for populations that are not experimentaly manipulated, can be divided into fecundity and growth elements, are recodred annually, and have at least 2 years.
+#Data Subsetting
 
-```{r subsetting}
+
+Next we subset the compadre dataset so that only matrices are kept for populations that are not experimental manipulated, can be divided into fecundity and growth elements, are recorded annually, and have at least 2 years. We used both pooled and mean matrices from Comadre (See Salguero‐Gómez et al. 2016 for details on COMADRE data)
+
+```{r subsetting, warning = FALSE}
 
 ###Subset entries form comadre with the below restictions for pooled and mean matrices.
 pooled_Metadata <- (subset(comadre$metadata, 
@@ -103,14 +111,18 @@ species_list <- data.frame(species =(combined_data$SpeciesAccepted),
 species_list_u <- unique(species_list$species)
 ```
 
-Now check all matrices for egordicity, primativity and irriducablity
+Now check all matrices for ergodicity, primitivity and irreducibility
 
-```{r check ergodicity, error = FALSE }
+```{r check ergodicity, message = FALSE, results='hide', warning = FALSE}
 
 is_ergodic <- vector()
 is_primitive <- vector()
 is_irreducible <- vector()
-is_post_rep <- vector() ##this gives true if repo is > 0 for final colume, hence false means its post reporductive
+
+#is_post_rep gives true if repo is > 0 for final column, 
+#hence false means its post reproductive
+is_post_rep <- vector()
+
 all_true <- vector()
 
 for(i in 1:length(keep_first)){
@@ -122,7 +134,12 @@ for(i in 1:length(keep_first)){
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   all_true[i] <- all(c(is_ergodic[i],is_primitive[i],is_irreducible[i]) == TRUE)
 } 
+
+
 test.frame <- data.frame(is_ergodic,is_primitive,is_irreducible,is_post_rep)
+
+#keep describes the matrix, by number, that passed the above tests
+#We use the number so we can refer back to information in the COMADRE object
 keep <- which(all_true == TRUE)
 
 discard_species <- which(all_true == FALSE)
@@ -133,10 +150,10 @@ clean_species <- combined_data[keep,]$SpeciesAccepted
 ```
 
 
-Now to calulate each of the metrics. First lets get some info on all the matrices we are using.
-```{r species population and taxa}
+Now lets get some info on all the matrices we are using.
+```{r species population and taxa, warning = FALSE}
 
-##loop through keep whaich are all the matces that passed the above tests.
+##loop through the keep list which are all the matces that passed the above tests.
 ##species names
 species_ind_full <- vector()
 ##taxa name
@@ -160,45 +177,25 @@ taxa_name[i] <- as.vector(combined_data[keep[i],]$Class)
 ##population_name
 pop_mat_name[i] <- combined_data[keep[i],]$MatrixPopulation
 
-###name of the first stage in the matrix
-first_stage[i] <- as.vector(combmatrixClass[keep[i]][[1]][1,2])
     
 ##matrix dimesnion
 matrix_size[i] <- dim(combMat[[keep[i]]]$matA)[1]
 
 }
 
-first_stage <- unlist(first_stage)
 ```
 
-Now lets calulate age at first reporduction
 
-```{r age at first reporduction,  error = FALSE}
+##Metric calculation
 
+First we need to calculate a few things in order make further metric calculations. First we need a final age point. Here we calculate the age when 95% an 99% of a cohort is dead for each population matrix
+```{r %alive,  error = FALSE, results='hide', warning = FALSE}
 
-##Age at first reproduction
-life_time_La <- vector()
-
-for(i in 1:length(keep)){
-  tryCatch({
- 
-    ##### age at first reproduction
-    life_time_La[i] <-	lifeTimeRepEvents(matU =   combMat[[keep[i]]]$matU, 
-                                          matF =  combMat[[keep[i]]]$matF,
-                                          startLife = 1)$La
-    
-    },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
-}
-```
-    
-Now lets calulate the age when 95% an 99% of the mature population is alive
-```{r %alive,  error = FALSE}
-
-##age (year) when 99% of chohort are dead
+##age (year) when 99% of cohort are dead
 surv_99 <- vector()
-##age (year) when 95% of chohort are dead
+##age (year) when 95% of cohort are dead
 surv_95 <- vector()
-#a resonable minimum maximum which is the hist of matrix size, 99% survival or QSD
+
 min_max <- vector() 
 
 for(i in 1:length(keep)){
@@ -216,10 +213,10 @@ for(i in 1:length(keep)){
                     matC =  combMat[[keep[i]]]$matC, 
               startLife = 1, nSteps = 1000)$lx*1000) < 0)[2]
     
-
+    #if the matrix dimension is larger then surv_99 we use that as the
+    #lifespan cutoff instead.
     min_max[i] <- max(surv_99[i],matrix_size[i])
-   #min_max[i] <- surv_99[i]
-    
+
     },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 
@@ -227,8 +224,10 @@ for(i in 1:length(keep)){
 
 
 
-Now lets calulate some lifetables
-```{r lifetables,  error = FALSE}
+Next we calculate life tables from each of the matrix model in order to calculate metrics related to the spread of reproduction and survival. We use the makeLifeTable function from the Mage github repository (https://github.com/jonesor/compadreDB/tree/master/Mage)
+
+
+```{r lifetables,  error = FALSE, results='hide', warning = FALSE}
 
 ###life table
 lxmx_curve <- list()
@@ -236,8 +235,7 @@ lxmx_curve <- list()
 for(i in 1:length(keep)){
   tryCatch({
 
-    ####calulculate the lxmx curve
-    #I use max lifespan as the cut off point
+    ####calculate the lxmx curve
     lxmx_curve[[i]] <-  makeLifeTable(matU =  combMat[[keep[i]]]$matU, 
                                  matF =  combMat[[keep[i]]]$matF, 
                                  matC =  combMat[[keep[i]]]$matC, 
@@ -248,14 +246,35 @@ for(i in 1:length(keep)){
 ```
 
 
+We use the `lifeTimeRepEvents` and `meanLifeExpectancy` functions from the `Mage` github repository (https://github.com/jonesor/compadreDB/tree/master/Mage), to calculate age at first reproduction, Mean life expectancy, and Life expectancy conditional on reaching sexual maturity, 
 
-Mean life expectancy
-```{r mean_life_expect,  error = FALSE}
+
+#Age at first reproduction
+
+```{r age at first reporduction,  error = FALSE, results='hide',  warning = FALSE}
+
+life_time_La <- vector()
+
+for(i in 1:length(keep)){
+  tryCatch({
+ 
+    life_time_La[i] <-	lifeTimeRepEvents(matU =   combMat[[keep[i]]]$matU, 
+                                          matF =  combMat[[keep[i]]]$matF,
+                                          startLife = 1)$La
+    
+    },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+```
+    
+
+#Mean life expectancy
+
+```{r mean_life_expect,  error = FALSE, results='hide',  warning = FALSE}
 mean_life_expect <- vector()
 for(i in 1:length(keep)){
   tryCatch({	
-    ##### mean life expectancy
-    mean_life_expect[i] <-	meanLifeExpectancy(matU = combMat[[keep[i]]]$matU, 
+
+        mean_life_expect[i] <-	meanLifeExpectancy(matU = combMat[[keep[i]]]$matU, 
                                               startLife= 1)
      
         },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
@@ -264,13 +283,13 @@ for(i in 1:length(keep)){
 ```
 
 
-Life expectancy conditional on reaching sexual maturity
-```{r M_rep_lif_exp,  error = FALSE}
+#Life expectancy conditional on reaching sexual maturity
+
+```{r M_rep_lif_exp,  error = FALSE,  warning = FALSE, results='hide'}
 M_rep_lif_exp <- vector()
 for(i in 1:length(keep)){
   tryCatch({	
  
-  ##life expectancy conditional on reaching reporduction
     M_rep_lif_exp[i] <- lifeTimeRepEvents(matU =  combMat[[keep[i]]]$matU, 
                                           matF =  combMat[[keep[i]]]$matF,
                                           startLife = 1)$meanRepLifeExpectancy
@@ -281,8 +300,11 @@ for(i in 1:length(keep)){
 ```
 
 
-Generation Time
-```{r Generation time,  error = FALSE}
+#Generation Time
+
+For generation tiome we used `generation.time` function from the `popbio` package.
+
+```{r Generation time,  error = FALSE, warning = FALSE, results='hide'}
 
 gen_time <- vector()
 
@@ -298,8 +320,11 @@ for(i in 1:length(keep)){
 ```
 
 
-Mean repo rate
-```{r Mean repo rate,  error = FALSE}
+#Mean reporduction rate
+
+We calculate the mean reproductive rate of a population both at its stable state distribution, and also using the raw matrix with no corrections.
+
+```{r Mean repo rate,  error = FALSE, warning = FALSE}
 
 mean_repo_rate <- vector()
 mean_repo_rate_not_fixed <- vector()
@@ -307,33 +332,34 @@ mean_repo_rate_stable_state <- vector()
 for(i in 1:length(keep)){
   tryCatch({	
  
-     ### mean reporduction rate
+     ### mean reproduction rate at stable state
     mean_repo_rate_stable_state[i] <- meanRepo(matA = combMat[[keep[i]]]$matA, 
                                                matF = combMat[[keep[i]]]$matF)
     
+     ### mean reproduction rate not at stable state
     mean_repo_rate[i] <- mean(combMat[[keep[i]]]$matF[1,combMat[[keep[i]]]$matF[1,] > 0])
     
-
     
         },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }   
 
 ```
 
-Gini and mx reporduction
-```{r Gini,  error = FALSE}
+#Spread of reproduction
+
+Using life tables we calculate the distribution of the lxmx curve using the Gini index function `Gini` from the `ineq` package. We also calculate the standard deviation of the curve.
+
+```{r Gini,  error = FALSE, warning = FALSE}
 
 gini <- vector()
-mxlx_mean <- vector()
 mxlxsd <- vector()
-mxsd <- vector()
 
 gini_prop <-vector()
 
 for(i in 1:length(keep)){
   tryCatch({	
     
-     ### mean reporduction rate
+     ### mean reproduction rate
        gini[i] <- Gini(lxmx_curve[[i]]$lx*lxmx_curve[[i]]$mx, corr= F)
       
        mxlxsd[i] <- sd(lxmx_curve[[i]]$lx*lxmx_curve[[i]]$mx)
@@ -343,10 +369,10 @@ for(i in 1:length(keep)){
 
 ```
 
+#Spread of mortality
+Using life tables we calculate the spread of mortality using the lx curves. To standardise for lx curve length we fit each curve with a spline and calculate the standard deviation of the distribution of mortality `fx`, which is the proportion of the cohort which die in each time step. We also calculate the probability of an individual reaching the age of sexual maturity. 
 
-
-standard diviation of survival
-```{r sd surv,  error = FALSE}
+```{r sd surv,  error = FALSE, warning = FALSE, results='hide'}
 
 
 sbins <- 100
@@ -354,13 +380,8 @@ sbins <- 100
 surv_sd <- vector()
 fx_curve <- list()
 La_sbins <- vector()
-
- prop_la <- vector()
+prop_la <- vector()
 spline_curve <- list()
-##age at which 10% of the population are alive
-
-
-##age at which 90% of the population are alive
 
 
 ##calulate f(x) age at death
@@ -392,10 +413,10 @@ for(i in 1:length(keep)){
 
 
 
+#Clean up for export.
 
-And put them all into a table
-```{r table,  error = FALSE}
-###some errors here could be cleaned up
+We put all the measures into a table
+```{r table,  error = FALSE, warning = FALSE}
 
 ind_vital <- data.frame(species_ind_full,
                         taxa_name,
@@ -432,7 +453,7 @@ prop_la_Dropped_species <- ind_vital[is.na(ind_vital[,c("prop_la")]),
 
 ```
 
-Now just remove the sub_species part of the names
+Now we remove the sub_species part of the names
 ```{r calulation of metrics at population level,  error = FALSE}
 
 ind_vital[,"species_ind_full"]  <- gsub(" subsp.*","", ind_vital[,"species_ind_full"])
@@ -440,38 +461,43 @@ ind_vital[,"species_ind_full"]  <- gsub(" ","_", ind_vital[,"species_ind_full"])
 
 ```
 
-Next we add in the external infor such as habitat etc.
+Next we add in the external information to create a single combined dataset.
 
-```{r  trophic data, error = FALSE}
-##trophic data
+```{r  trophic data, error = FALSE, warning = FALSE, results='hide'}
+
 mass_g <- vector()
-parental_care <- vector()
-repo_type <- vector()
-mobility <- vector()
-trophic_level <- vector()
-habitat_ecology <- vector()
-habitat <-  vector()
-repo_size_g <- vector()
+mode_of_life <- vector()
+repo_output <- vector()
+met_rate <- vector()
+IUCN <- vector()
+
 
 
 for(k in 1:(length(ind_vital$species_ind_full))){
   tryCatch({	
     
 
-   
-      parental_care[k] <-   as.vector(na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"parental_care"]))
-      
-      repo_type[k] <-   as.vector(na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"repo_type"]))
  
-      mobility[k] <-   as.vector(na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"mobility"]))
+      mode_of_life[k] <-   as.vector(trophic_data[trophic_data$species  
+                        == as.vector(ind_vital[k,"species_ind_full"]),
+                          "mode_of_life"])
       
-      mass_g[k] <-   (na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"mass_g"]))[1]
+      mass_g[k] <-   as.vector(trophic_data[trophic_data$species  
+                        == as.vector(ind_vital[k,"species_ind_full"]),
+                          "body_mass_g"])
+      
+      repo_output[k] <-   as.vector(trophic_data[trophic_data$species  
+                        == as.vector(ind_vital[k,"species_ind_full"]),
+                          "mass_specific_reproductive_output_g_g"])
 
-      trophic_level[k] <-   as.vector(na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"trophic_level"]))
+      met_rate[k] <-   as.vector(trophic_data[trophic_data$species  
+                        == as.vector(ind_vital[k,"species_ind_full"]),
+                          "mass_specific_metabolic_rate_w_kg"])
       
-      habitat_ecology[k] <-  as.vector(na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"habitat_ecology"]))
       
-      habitat[k] <-  as.vector(na.omit(trophic_data[trophic_data$species  == as.vector(ind_vital[k,"species_ind_full"]),"habitat"]))
+      IUCN[k] <-   as.vector(trophic_data[trophic_data$species  
+                        == as.vector(ind_vital[k,"species_ind_full"]),
+                          "IUCN_statues"])
 
       
       },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
@@ -484,44 +510,50 @@ for(k in 1:(length(ind_vital$species_ind_full))){
 Stick them all together
 ```{r  trophic and pop data,  error = FALSE}
 
-pop_vital <- data.frame(ind_vital,                       
-                         mass_g,
-                         parental_care,
-                         repo_type,
-                         mobility,
-                         trophic_level,
-                         habitat_ecology,
-                         habitat,
-                         min_max
+pop_vital <- data.frame(ind_vital,
+                        mass_g,
+                        mode_of_life,
+                        repo_output,
+                        met_rate,
+                        IUCN,
+                        min_max
                          )
 
 ```
 
 
-lets just calulate the whole lot together
+#Human data
+Due to the format of the human data we calculated all the metrics separately for humans and ten combined them into a single dataset at the end.
+
+
 ```{r human metric}
 
 #Spline bins
 
 sbins <- 100
 
-##I need to come up with a better breack down for these
 #lets calculate for Ireland
-Irish_rows_1960 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Ireland" & keyfitz$countryyear$year > 1960,]))
-Irish_rows_1920 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Ireland" & keyfitz$countryyear$year < 1960,]))
+Irish_rows_1960 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country 
+                                    == "Ireland" & keyfitz$countryyear$year > 1960,]))
+Irish_rows_1920 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country 
+                                    == "Ireland" & keyfitz$countryyear$year < 1960,]))
 
-#lets calculate for Sweden as Finland didnt work
-Sweden_rows_a60 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Sweden" & keyfitz$countryyear$year > 1960,]))
-Sweden_rows_1850_19 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Sweden" & keyfitz$countryyear$year > 1850 & keyfitz$countryyear$year < 1901,]))
+#lets calculate for Sweden
+Sweden_rows_a60 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country 
+                                    == "Sweden" & keyfitz$countryyear$year > 1960,]))
+Sweden_rows_1850_19 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country 
+                                   == "Sweden" & keyfitz$countryyear$year > 1850 
+                                               & keyfitz$countryyear$year < 1901,]))
 
 #lets calculate for Japan
-Japan_rows_b60 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Japan" & keyfitz$countryyear$year < 1960,]))
-Japan_rows_a60 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Japan" & keyfitz$countryyear$year > 1960,]))
+Japan_rows_b60 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country 
+                                  == "Japan" & keyfitz$countryyear$year < 1960,]))
+Japan_rows_a60 <- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country 
+                                  == "Japan" & keyfitz$countryyear$year > 1960,]))
 
 
-Irish_rows<- as.numeric(rownames(keyfitz$countryyear[keyfitz$countryyear$country == "Ireland",]))
 
-##average the pops
+##average the pops to make mean matrices
 Irish_mat_1960 <- keyfitz$Agam100[Irish_rows_1960]
 Irish_mat_1920 <- keyfitz$Agam100[Irish_rows_1920]
 Sweden_rows_1850_19 <- keyfitz$Agam100[Sweden_rows_1850_19]
@@ -538,16 +570,27 @@ japan_a60 <- meanMatrix(japan_mat_a60)
 
 
 ##you need to put this in the right order
-human_pop <- c("Homo_Irish1920" , "Homo_Irish1960", "Sweden_1850_19","Sweden_a60", "japan_b60", "japan_a60")
-human_mats <- list(Irish_1920, Irish_1960, Sweden_1850_19, Sweden_a60, japan_b60, japan_a60)
+human_pop <- c("Homo_Irish1920" , 
+               "Homo_Irish1960", 
+               "Sweden_1850_19",
+               "Sweden_a60", 
+               "japan_b60", 
+               "japan_a60")
+
+human_mats <- list(Irish_1920, 
+                   Irish_1960, 
+                   Sweden_1850_19, 
+                   Sweden_a60, 
+                   japan_b60, 
+                   japan_a60)
 
 ##pop names and year
 pop_country_year <- vector()
 ##mean life expectancy
 h_mean_life_expect <- vector()
-##age (year) when 99% of chohort are dead
+##age (year) when 99% of cohort are dead
 h_surv_99 <- vector()
-##age (year) when 95% of chohort are dead
+##age (year) when 95% of cohort are dead
 h_surv_95 <- vector()
 ##life expectancy contingent on entering reproduction
 h_M_rep_lif_exp <- vector()
@@ -555,9 +598,9 @@ h_M_rep_lif_exp <- vector()
 h_life_time_La <- vector()
 #generation time
 h_gen_time <- vector()
-##mean reporductive rate raw
+##mean reproduction rate raw
 h_mean_repo_rate <- vector()
-##mean reporductive rate
+##mean reproduction rate
 h_mean_repo_rate_stable_state <- vector()
 #matrix dimension size
 h_matrix_size <- vector()
@@ -572,15 +615,15 @@ fx_h_curve <- list()
 h_lxmx_curve_list <- list()
 h_spline_curve <- list()
 
-##convert the age of maturity to the right point on the spline sampled curve
+##La_h_sbins converts the age of maturity to the right point on the 
+#spline sampled curve
 La_h_sbins <- vector()
-
 
 
 for(i in 1:length(human_mats)){
   tryCatch({
     
-###we first need to decompose the A matri into U F and C
+###we first need to decompose the A matrices into U F and C matrices
     A_hum <-  human_mats[[i]]
     U_hum <- A_hum
     U_hum[1,] <- 0
@@ -589,10 +632,10 @@ for(i in 1:length(human_mats)){
     C_hum <- matrix(0,dim(A_hum)[1],dim(A_hum)[1])
     
     
-    ##country and year
+    ## country and year
     pop_country_year[i] <- human_pop[i]
 
-    ##matrix dimesnion
+    ## matrix dimesnion
     h_matrix_size[i] <- dim(A_hum)[1]
     
      
@@ -608,12 +651,12 @@ for(i in 1:length(human_mats)){
                     matC =  C_hum, 
               startLife = 1, nSteps = 1000)$lx*1000) < 0)[2]
     
-    ##### time to first reproduction
+    ##### age at first reproduction
     h_life_time_La[i] <-	lifeTimeRepEvents(matU = U_hum, 
                                           matF = F_hum,
                                           startLife = 1)$La
     
-    ##life expectancy conditional on reaching reporduction
+    ##life expectancy conditional on reaching reproduction
     h_M_rep_lif_exp[i] <- lifeTimeRepEvents(matU =  U_hum, 
                                           matF =  F_hum,
                                           startLife = 1)$meanRepLifeExpectancy
@@ -622,16 +665,17 @@ for(i in 1:length(human_mats)){
     ##### generation time from popbio package
     h_gen_time[i]  <- generation.time(A =  A_hum)
     
-    ### mean reporduction rate
+    ### mean reproduction rate at stable state distribution
     h_mean_repo_rate_stable_state[i] <- meanRepo(matA = A_hum, 
                                                  matF = F_hum)
     
+    ### mean reproduction rate not at stable state distribution
     h_mean_repo_rate[i] <- mean(F_hum[1,])
     
   
     
     ####calulculate the lxmx curve
-    #I use max lifespan as the cut off point
+    #I use h_surv_99 as the cut off point
     h_lxmx_curve <-  makeLifeTable(matU =  U_hum, 
                                  matF =  F_hum, 
                                  matC =  C_hum, 
@@ -644,7 +688,9 @@ for(i in 1:length(human_mats)){
                                  startLife = 1,
                                  nSteps = h_surv_99[i])
     
-    h_spline_curve[[i]] <-  unlist(lx_spline(h_lxmx_curve_list[[i]]$lx, h_lxmx_curve_list[[i]]$x, bins = sbins)[1])
+    h_spline_curve[[i]] <-  unlist(lx_spline(h_lxmx_curve_list[[i]]$lx, 
+                                             h_lxmx_curve_list[[i]]$x, 
+                                             bins = sbins)[1])
 
     
     La_h_sbins[i] <- round((h_life_time_La[i]/h_surv_99[i])*sbins)
@@ -671,14 +717,14 @@ for(i in 1:length(human_mats)){
     
   
     
-    h_surv_sd[i] <- sd(fx_h_curve[[i]], na.rm = TRUE)
+    h_surv_sd[i] <- sd(fx_h_curve[[i]], 
+                       na.rm = TRUE)
 
    
-    },error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+    },error=function(e){cat("ERROR :", conditionMessage(e), "\n")})
 }   
 
 
-###some errors here could be cleaned up
 h_ind_vital <- data.frame(                        
                         pop_country_year,
                         h_mean_life_expect,
@@ -699,6 +745,8 @@ h_ind_vital <- data.frame(
 ```
 
 
+Combine the human  and animal data together.
+
 ```{r animal huma combine,  error = FALSE}
 
 
@@ -717,15 +765,32 @@ human_dem <- data.frame(species_ind_full = rep("Homo_sapiens", length(human_pop)
                         gini = h_gini,
                         mxlxsd = h_mxlxsd,
                         surv_sd = h_surv_sd,
-                        mass_g =  rep(trophic_data[trophic_data$species  == "Homo_sapiens","mass_g"],length(pop_country_year)),
-                        parental_care = rep(trophic_data[trophic_data$species  == "Homo_sapiens","parental_care"],length(pop_country_year)),
-                        repo_type = rep(trophic_data[trophic_data$species  == "Homo_sapiens","repo_type"],length(pop_country_year)),
-                        mobility = rep(trophic_data[trophic_data$species  == "Homo_sapiens","mobility"],length(pop_country_year)),
-                        trophic_level = rep(trophic_data[trophic_data$species  == "Homo_sapiens","trophic_level"],length(pop_country_year)),
-                        habitat_ecology = rep(trophic_data[trophic_data$species  == "Homo_sapiens","habitat_ecology"],length(pop_country_year)),
-                        habitat = rep(trophic_data[trophic_data$species  == "Homo_sapiens","habitat"],length(pop_country_year)),
-                        min_max = h_surv_99,
-                        prop_la = prop_h_la)
+                        prop_la = prop_h_la,
+                      
+                        mass_g =  rep(trophic_data[trophic_data$species  
+                                   == "Homo_sapiens",
+                                   "body_mass_g"],
+                                   length(pop_country_year)),
+                        
+                        mode_of_life = rep(trophic_data[trophic_data$species  
+                                    == "Homo_sapiens",
+                                    "mode_of_life"],
+                                    length(pop_country_year)),
+  
+                        repo_output = rep(trophic_data[trophic_data$species 
+                                    == "Homo_sapiens",
+                                    "mass_specific_reproductive_output_g_g"],
+                                    length(pop_country_year)),
+                        
+                        met_rate = rep(trophic_data[trophic_data$species  
+                                    == "Homo_sapiens",
+                                    "mass_specific_metabolic_rate_w_kg"],
+                                    length(pop_country_year)),
+                        
+                        IUCN = rep(trophic_data[trophic_data$species  
+                                    == "Homo_sapiens","IUCN_statues"],
+                                   length(pop_country_year)),
+                        min_max = h_surv_99)
 
 full_m_data <- rbind(pop_vital,human_dem)
 
@@ -733,70 +798,40 @@ full_m_data <- rbind(pop_vital,human_dem)
 ```
 
 
-We can drop some variables
-```{r drop some variables}
+Now we can clean the data before exporting it
 
-full_m_data <- full_m_data[,
-                           c("species_ind_full",
-                             "taxa_name",
-                             "pop_mat_name",
-                             "mean_life_expect",
-                             "life_time_La",
-                             "mean_repo_rate",
-                             "mean_repo_rate_stable_state",
-                             "gen_time",
-                             "M_rep_lif_exp",
-                             "matrix_size",
-                             "surv_95",
-                             "surv_99",
-                             "gini",
-                             "mxlxsd",
-                             "surv_sd",
-                             "mass_g",
-                             "parental_care",
-                             "repo_type",
-                             "mobility",
-                             "trophic_level",
-                             "habitat_ecology",
-                             "habitat",
-                             "min_max",
-                             "prop_la")
-                             ]
-
-
-```
-
-
-
-
-Now we can clean the data before expoting it
-
-First lets add another column relating to whther the species is warm or cold blooded
+First lets add another column relating to whether the species is warm or cold blooded
 ```{r put in a endo ecto cat}
 
 full_m_data$met_type <- as.vector(full_m_data$taxa)
-full_m_data[full_m_data$taxa == "Aves"|full_m_data$taxa == "Mammalia" ,"met_type"] <- "endo"
-full_m_data[!(full_m_data$taxa == "Aves"|full_m_data$taxa == "Mammalia") ,"met_type"] <- "ecto"
+
+full_m_data[full_m_data$taxa == "Aves"|full_m_data$taxa == "Mammalia" ,
+            "met_type"] <- "endo"
+
+full_m_data[!(full_m_data$taxa == "Aves"|full_m_data$taxa == "Mammalia") ,
+            "met_type"] <- "ecto"
 ```
 
-Remove biologically crazy species
+
+Some of the species population data has clear errors in them. Here we remove the most obvious ones and give the reason why.
 
 ```{r remove biologically crazy species}
 
 pop_data <- full_m_data
 
-####remonve these problem species as they clearly have a problem
-##Spratt have lifesspans >100 which clearly way off any sensible biology
+##Spratt have lifespans greater then 100 years according the matrices so were removed. 
 pop_data_sr <- pop_data[pop_data$species != "Sprattus_sprattus",]
-##This stupid monkey thinks it can live for >105
+
+##The Northern muriqui also gives much longer lifespans (>105) than any record.
 pop_data_sr2 <- pop_data_sr[pop_data_sr$species != "Brachyteles_hypoxanthus",]
-##Scolytus_ventralis is coded in as annual but its a seasonal species
+
+##Scolytus_ventralis is coded in as annual but is clearly a seasonal species.
 pop_data_sr3 <- pop_data_sr2[pop_data_sr2$species != "Scolytus_ventralis",]
 
-####remove Enhydra_lutris its a simulation based study
-##This gives an Na at the moment, check at the end to see if it still does, in which case remove this line
+##The study for Enhydra_lutris is a simulation based study so we remove it.
 pop_data_sr4 <- pop_data_sr3[pop_data_sr3$species != "Enhydra_lutris",]
 
+##Problems with the repoductive elements.
 pop_data_sr5 <- pop_data_sr4[pop_data_sr3$species != "Somateria_mollissima",]
 
 
@@ -809,18 +844,24 @@ colnames(pop_data_nopop)[1] <- "species"
 ```
 
 
-Now remove any infs of Na's in the pop metrics
+Now we remove any infs of Na's in the pop metrics
 ```{r remove rows with inf or NAs}
 
-##remove infinaties
-pop_data_infr  <- do.call(data.frame,lapply(pop_data_nopop, function(x) replace(x, is.infinite(x),NA)))
+##remove infinities
+pop_data_infr  <- do.call(data.frame,
+                          lapply(pop_data_nopop, 
+                                 function(x) replace(x, 
+                                                     is.infinite(x),
+                                                     NA)))
 
 full_infna_data <- na.omit(pop_data_infr)
 ```
 
-```{r prun the tree down the remaining species}
 
-##add a colume to idenfy pgls match up
+Now we match up the data to the phylogeny and make a multiphylo object.
+```{r prun the tree down the remaining species, results='hide'}
+
+##add a column to idenfy pgls match up
 phylo_match_data <- data.frame(full_infna_data, animal = full_infna_data$species)
 
 pgls_unique_matched <- data.frame(species = unique(phylo_match_data$species), 
@@ -843,28 +884,7 @@ class(axis_trees) <- "multiPhylo"
 axis_comp$dropped$unmatched.rows
 ```
 
-```{r ecto and endo}
-
-met_type <- as.vector(phylo_match_data$taxa_name)
-
-met_type[phylo_match_data$taxa_name == "Mammalia" ] <- "endo"
-met_type[phylo_match_data$taxa_name == "Aves"] <- "endo"
-
-met_type[phylo_match_data$taxa_name == "Reptilia"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Elasmobranchii"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Gastropoda"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Demospongiae"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Bivalvia"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Anthozoa"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Anthozoa"] <- "ecto"
-met_type[phylo_match_data$taxa_name == "Actinopterygii"] <- "ecto"
-
-
-phylo_match_data <- data.frame(phylo_match_data, met_type)
-
-```
-
-Lets also prun down the tree to subset for mammals, aves, endotherms and ectotherms.
+We also make a series of separate datasets and matching phylogenies for each of the additional analysis of mammals, aves, endotherms and ectotherms.
 
 ```{r prun the trees for each of the sub analysis}
 

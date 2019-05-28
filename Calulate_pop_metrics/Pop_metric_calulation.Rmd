@@ -832,7 +832,7 @@ pop_data_sr3 <- pop_data_sr2[pop_data_sr2$species != "Scolytus_ventralis",]
 pop_data_sr4 <- pop_data_sr3[pop_data_sr3$species != "Enhydra_lutris",]
 
 ##Problems with the repoductive elements.
-pop_data_sr5 <- pop_data_sr4[pop_data_sr3$species != "Somateria_mollissima",]
+pop_data_sr5 <- pop_data_sr4[pop_data_sr4$species != "Somateria_mollissima",]
 
 
 ##remove the population colunm
@@ -854,7 +854,11 @@ pop_data_infr  <- do.call(data.frame,
                                                      is.infinite(x),
                                                      NA)))
 
-full_infna_data <- na.omit(pop_data_infr)
+
+
+full_infna_data <- pop_data_infr[complete.cases(pop_data_infr[,1:17]),]
+
+
 ```
 
 

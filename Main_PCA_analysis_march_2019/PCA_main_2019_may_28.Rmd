@@ -1,0 +1,740 @@
+---
+title: "PCA_analysis"
+author: "Kevin Healy"
+date: "19 June 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+First we load the required packages including the mulTree package which will allow us to read back in the relavent information from the MCMCglmm models we ran previously. We will also require the `paran` package for the PCA test, `caper`, `phytools` and `MCMCglmm` to handle the phylogeny objects and related functions and `SIBER` and `ggplot2` to creat the ellipses and plot the overlaps. As in previous scripts we will also use some costume functions.
+
+```{r source functions}
+
+library(caper)
+library(phytools)
+library(MCMCglmm)
+library(mulTree)
+library(paran)
+library(SIBER)
+library(ggplot2)
+
+source("Demography_functions.R")
+```
+
+Now we upload the previous data including both the life history metrics we calulated and also the body size, IUCN and other data.
+```{r  data}
+
+pop_data <- read.csv("axis_analysis_data.csv", 
+                         sep = ",", header = T)
+
+
+```
+
+Next we upload the matching distribution of phylogenies calculated from the previous Phylogeny_construction and Pop_metric_calulation scripts.
+
+```{r phylogeny}
+
+axis_trees <- read.tree("axis_analysis_phylo.tre")
+
+```
+
+
+
+Log10 the non index based metrics
+```{r log data }
+
+log_list <- c("life_time_La",
+              "mean_repo_rate_stable_state",
+              "mean_repo_rate",
+              "gen_time",
+              "M_rep_lif_exp",
+              "gini",
+              "surv_sd",
+              "mass_g",
+              "mxlxsd",
+              "matrix_size")
+
+pop_data_log <- pop_data
+
+pop_data_log[,log_list] <- sapply(pop_data[,log_list], function(x) log10(x))
+
+```
+
+And mean center the data
+
+```{r mean center data }
+mean_c_list  <- c( "life_time_La", 
+                  "mean_repo_rate",
+                  "gen_time",
+                  "M_rep_lif_exp",
+                  "matrix_size",
+                  "gini",
+                  "mean_repo_rate_stable_state",
+                  "mxlxsd",
+                  "surv_sd",
+                  "mass_g")
+
+pop_data_log_mc <- pop_data_log
+pop_data_log_mc[,mean_c_list] <- sapply(pop_data_log[,mean_c_list], function(x) mean_center(x))
+
+```
+
+
+
+We also need to make a multree object that holds both the data and the multiphylo object and from which we will calulate the residuals from each of the modeel
+```{r mulTree}
+pop_multree <- as.mulTree(data = pop_data_log_mc, tree = axis_trees, taxa = "animal", rand.terms = ~animal + species)
+
+```
+
+
+##Read back in the the MCMCglmm model outputs
+
+For each of the life history metrics we read back in the information we need from the 100 MCMCglmm models we ran. We will then calculate the residuals form these which will be then used for the PCA analysis. We will also look at the random terms of phylogentic effect, population level variance (species) and the residual term.
+
+#Age at first reproduction
+
+```{r La readback run}
+La_models <- read.mulTree("la_run")
+summary(La_models)
+```
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r La var, include=TRUE, warning = FALSE}
+la_var <- read.mulTree("la_run", extract = "VCV")
+
+#phylogenetic signal
+la_phlyo <- list()
+#population level variation
+la_spec <- list()
+#residual
+la_unit <- list()
+
+#extrace the random terms from across the models
+for(i in 1:length(names(la_var))){
+
+  la_phlyo[[i]] <-  la_var[[1]][,1] 
+  la_spec[[i]] <-  la_var[[1]][,2] 
+  la_unit[[i]] <-  la_var[[1]][,3] 
+  }
+
+la_phlyo <- unlist(la_phlyo)
+la_spec <- unlist(la_spec)
+la_unit <- unlist(la_unit)
+
+la_prop_phlyo <- la_phlyo/(la_phlyo + la_spec + la_unit)
+la_prop_spec  <- la_spec/(la_phlyo + la_spec + la_unit)
+la_prop_residuals  <- la_unit/(la_phlyo + la_spec + la_unit)
+
+#Phylogenetic signal
+hdr(la_prop_phlyo)$mode
+
+#Population level variance 
+hdr(la_prop_spec)$mode
+
+#Residual term
+hdr(la_prop_residuals)$mode
+
+```
+
+
+Next calculate the residuals from the allometric model for Age at first reproduction.
+
+```{r La residuals}
+
+La_resids <- mul_resids(mul_output = La_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("life_time_La")
+ )
+
+```
+
+
+#Mean Reporductive Rate
+
+```{r mean_repo_rate readback run}
+repo_models <- read.mulTree("mean_repo_rate_run")
+summary(repo_models)
+```
+
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r mean_repo_rate var}
+repo_var <- read.mulTree("mean_repo_rate_run", extract = "VCV")
+
+repo_phlyo <- list()
+repo_spec <- list()
+repo_unit <- list()
+
+for(i in 1:length(names(repo_var))){
+
+  repo_phlyo[[i]] <-  repo_var[[1]][,1] 
+  repo_spec[[i]] <-  repo_var[[1]][,2] 
+  repo_unit[[i]] <-  repo_var[[1]][,3] 
+  }
+
+repo_phlyo <- unlist(repo_phlyo)
+repo_spec <- unlist(repo_spec)
+repo_unit <- unlist(repo_unit)
+
+repo_prop_phlyo <- repo_phlyo/(repo_phlyo + repo_spec + repo_unit)
+repo_prop_spec  <- repo_spec/(repo_phlyo + repo_spec + repo_unit)
+repo_prop_residuals  <- repo_unit/(repo_phlyo + repo_spec + repo_unit)
+
+#Phylogenetic signal
+hdr(repo_prop_phlyo)$mode
+
+#Population level variance 
+hdr(repo_prop_spec)$mode
+
+#Residual term
+hdr(repo_prop_residuals)$mode
+```
+
+
+Next calculate the residuals from the allometric model for mean reporductive rate.
+
+```{r mean_repo_rate residuals}
+
+repo_resids <- mul_resids(mul_output = repo_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("mean_repo_rate_stable_state")
+ )
+
+```
+
+
+#Mean Reporductive Rate not at the stabel state distribution
+
+
+```{r mean_repo_rate_nst readback run}
+repo_nst_models <- read.mulTree("mean_repo_rate_nst_run")
+summary(repo_nst_models)
+```
+
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r mean_repo_rate_nst var}
+repo_nst_var <- read.mulTree("mean_repo_rate_nst_run", extract = "VCV")
+
+repo_nst_phlyo <- list()
+repo_nst_spec <- list()
+repo_nst_unit <- list()
+
+for(i in 1:length(names(repo_nst_var))){
+
+  repo_nst_phlyo[[i]] <-  repo_nst_var[[1]][,1] 
+  repo_nst_spec[[i]] <-  repo_nst_var[[1]][,2] 
+  repo_nst_unit[[i]] <-  repo_nst_var[[1]][,3] 
+  }
+
+repo_nst_phlyo <- unlist(repo_nst_phlyo)
+repo_nst_spec <- unlist(repo_nst_spec)
+repo_nst_unit <- unlist(repo_nst_unit)
+
+repo_nst_prop_phlyo <- repo_nst_phlyo/(repo_nst_phlyo + repo_nst_spec + repo_nst_unit)
+repo_nst_prop_spec  <- repo_nst_spec/(repo_nst_phlyo + repo_nst_spec + repo_nst_unit)
+repo_nst_prop_residuals  <- repo_nst_unit/(repo_nst_phlyo + repo_nst_spec + repo_nst_unit)
+
+
+#Phylogenetic signal
+hdr(repo_nst_prop_phlyo)$mode
+
+#Population level variance 
+hdr(repo_nst_prop_spec)$mode
+
+#Residual term
+hdr(repo_nst_prop_residuals)$mode
+
+```
+
+
+Next calculate the residuals from the allometric model for mean reporductive rate not at the stable state.
+
+```{r mean_repo_rate_nst residuals}
+
+repo_nst_resids <- mul_resids(mul_output = repo_nst_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("mean_repo_rate")
+ )
+
+```
+
+
+#Standard deviation of mxlx
+
+
+```{r mxlxsd readback run}
+mxlxsd_models <- read.mulTree("mxlxsd_logged_10_run")
+summary(mxlxsd_models)
+```
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r mxlxsd var}
+mxlxsd_var <- read.mulTree("mxlxsd_logged_10_run", extract = "VCV")
+
+mxlxsd_phlyo <- list()
+mxlxsd_spec <- list()
+mxlxsd_unit <- list()
+
+for(i in 1:length(names(mxlxsd_var))){
+
+  mxlxsd_phlyo[[i]] <-  mxlxsd_var[[1]][,1] 
+  mxlxsd_spec[[i]] <-  mxlxsd_var[[1]][,2] 
+  mxlxsd_unit[[i]] <-  mxlxsd_var[[1]][,3] 
+  }
+
+mxlxsd_phlyo <- unlist(mxlxsd_phlyo)
+mxlxsd_spec <- unlist(mxlxsd_spec)
+mxlxsd_unit <- unlist(mxlxsd_unit)
+
+mxlxsd_prop_phlyo <- mxlxsd_phlyo/(mxlxsd_phlyo + mxlxsd_spec + mxlxsd_unit)
+mxlxsd_prop_spec  <- mxlxsd_spec/(mxlxsd_phlyo + mxlxsd_spec + mxlxsd_unit)
+mxlxsd_prop_residual  <- mxlxsd_unit/(mxlxsd_phlyo + mxlxsd_spec + mxlxsd_unit)
+
+
+#Phylogenetic signal
+hdr(mxlxsd_prop_phlyo)$mode
+
+#Population level variance 
+hdr(mxlxsd_prop_spec)$mode
+
+#Residual term
+hdr(mxlxsd_prop_residual)$mode
+
+```
+
+Next calculate the residuals from the allometric model for mxlxsd
+
+```{r mxlxsd residuals}
+
+mxlxsd_resids <- mul_resids(mul_output = mxlxsd_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("mxlxsd")
+ )
+
+```
+
+
+
+#Generation Time
+
+```{r gen readback run}
+gen_time_models <- read.mulTree("gen_time_run")
+summary(gen_time_models)
+```
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r gen_time_run var}
+gen_time_var <- read.mulTree("gen_time_run", extract = "VCV")
+
+gen_time_phlyo <- list()
+gen_time_spec <- list()
+gen_time_unit <- list()
+
+for(i in 1:length(names(gen_time_var))){
+
+  gen_time_phlyo[[i]] <-  gen_time_var[[1]][,1] 
+  gen_time_spec[[i]] <-  gen_time_var[[1]][,2] 
+  gen_time_unit[[i]] <-  gen_time_var[[1]][,3] 
+  }
+
+gen_time_phlyo <- unlist(gen_time_phlyo)
+gen_time_spec <- unlist(gen_time_spec)
+gen_time_unit <- unlist(gen_time_unit)
+
+gen_time_prop_phlyo <- gen_time_phlyo/(gen_time_phlyo + gen_time_spec + gen_time_unit)
+gen_time_prop_spec  <- gen_time_spec/(gen_time_phlyo + gen_time_spec + gen_time_unit)
+gen_time_prop_residual  <- gen_time_unit/(gen_time_phlyo + gen_time_spec + gen_time_unit)
+
+
+#Phylogenetic signal
+hdr(gen_time_prop_phlyo)$mode
+
+#Population level variance 
+hdr(gen_time_prop_spec)$mode
+
+#Residual term
+hdr(gen_time_prop_residual)$mode
+
+```
+
+Next calculate the residuals from the allometric model for generation time
+
+```{r gen_time_run residuals}
+
+gen_time_resids <- mul_resids(mul_output = gen_time_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("gen_time")
+ )
+
+```
+
+
+#Life expectancy conditional on reaching sexual maturity
+
+```{r M_rep_lif_exp readback run}
+M_rep_lif_exp_models <- read.mulTree("M_rep_lif_exp_run")
+summary(M_rep_lif_exp_models)
+```
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r M_rep_lif_exp var}
+M_rep_lif_exp_var <- read.mulTree("M_rep_lif_exp_run", extract = "VCV")
+
+M_rep_lif_exp_phlyo <- list()
+M_rep_lif_exp_spec <- list()
+M_rep_lif_exp_unit <- list()
+
+for(i in 1:length(names(M_rep_lif_exp_var))){
+
+  M_rep_lif_exp_phlyo[[i]] <-  M_rep_lif_exp_var[[1]][,1] 
+  M_rep_lif_exp_spec[[i]] <-  M_rep_lif_exp_var[[1]][,2] 
+  M_rep_lif_exp_unit[[i]] <-  M_rep_lif_exp_var[[1]][,3] 
+  }
+
+M_rep_lif_exp_phlyo <- unlist(M_rep_lif_exp_phlyo)
+M_rep_lif_exp_spec <- unlist(M_rep_lif_exp_spec)
+M_rep_lif_exp_unit <- unlist(M_rep_lif_exp_unit)
+
+M_rep_lif_exp_prop_phlyo <- M_rep_lif_exp_phlyo/(M_rep_lif_exp_phlyo + M_rep_lif_exp_spec + M_rep_lif_exp_unit)
+M_rep_lif_exp_prop_spec  <- M_rep_lif_exp_spec/(M_rep_lif_exp_phlyo + M_rep_lif_exp_spec + M_rep_lif_exp_unit)
+M_rep_lif_exp_prop_residuals  <- M_rep_lif_exp_unit/(M_rep_lif_exp_phlyo + M_rep_lif_exp_spec + M_rep_lif_exp_unit)
+
+
+#Phylogenetic signal
+hdr(M_rep_lif_exp_prop_phlyo)$mode
+
+#Population level variance 
+hdr(M_rep_lif_exp_prop_spec)$mode
+
+#Residual term
+hdr(M_rep_lif_exp_prop_residuals)$mode
+
+```
+
+Next calculate the residuals from the allometric model for life expectancy conditional on reaching sexual maturity
+
+```{r M_rep_lif_exp residuals}
+
+M_rep_lif_exp_resids <- mul_resids(mul_output = M_rep_lif_exp_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("M_rep_lif_exp")
+ )
+
+```
+
+
+#Gini index
+
+```{r gini readback run}
+gini_models <- read.mulTree("gini_logged_run")
+
+summary(gini_models)
+
+```
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r gini read in}
+gini_var <- read.mulTree("gini_logged_run", extract = "VCV")
+
+gini_phlyo <- list()
+gini_spec <- list()
+gini_unit <- list()
+
+for(i in 1:length(names(gini_var))){
+
+  gini_phlyo[[i]] <-  gini_var[[1]][,1] 
+  gini_spec[[i]] <-  gini_var[[1]][,2] 
+  gini_unit[[i]] <-  gini_var[[1]][,3] 
+  }
+
+gini_phlyo <- unlist(gini_phlyo)
+gini_spec <- unlist(gini_spec)
+gini_unit <- unlist(gini_unit)
+
+gini_prop_phlyo <- gini_phlyo/(gini_phlyo + gini_spec + gini_unit)
+gini_prop_spec  <- gini_spec/(gini_phlyo + gini_spec + gini_unit)
+gini_prop_residuals  <- gini_unit/(gini_phlyo + gini_spec + gini_unit)
+
+
+#Phylogenetic signal
+hdr(gini_prop_phlyo)$mode
+
+#Population level variance 
+hdr(gini_prop_spec)$mode
+
+#Residual term
+hdr(gini_prop_residuals)$mode
+
+```
+
+Next calculate the residuals from the allometric model for the gini index
+
+```{r gini residuals}
+
+gini_resids <- mul_resids(mul_output = gini_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("gini")
+ )
+
+```
+
+
+
+#Standard deviation of mortality rates
+
+
+```{r surv readback run}
+surv_sd_models <- read.mulTree("surv_sd_logged_run")
+
+summary(surv_sd_models)
+
+```
+
+Now we calculate the proportion of variance between phylogenetic, population and residual variance.
+
+```{r surv read in}
+surv_sd_var <- read.mulTree("surv_sd_logged_run", extract = "VCV")
+
+surv_sd_phlyo <- list()
+surv_sd_spec <- list()
+surv_sd_unit <- list()
+
+for(i in 1:length(names(surv_sd_var))){
+
+  surv_sd_phlyo[[i]] <-  surv_sd_var[[1]][,1] 
+  surv_sd_spec[[i]] <-  surv_sd_var[[1]][,2] 
+  surv_sd_unit[[i]] <-  surv_sd_var[[1]][,3] 
+  }
+
+surv_sd_phlyo <- unlist(surv_sd_phlyo)
+surv_sd_spec <- unlist(surv_sd_spec)
+surv_sd_unit <- unlist(surv_sd_unit)
+
+surv_sd_prop_phlyo <- surv_sd_phlyo/(surv_sd_phlyo + surv_sd_spec + surv_sd_unit)
+surv_sd_prop_spec  <- surv_sd_spec/(surv_sd_phlyo + surv_sd_spec + surv_sd_unit)
+surv_sd_prop_residuals  <- surv_sd_unit/(surv_sd_phlyo + surv_sd_spec + surv_sd_unit)
+
+
+#Phylogenetic signal
+hdr(surv_sd_prop_phlyo)$mode
+
+#Population level variance 
+hdr(surv_sd_prop_spec)$mode
+
+#Residual term
+hdr(surv_sd_prop_residuals)$mode
+
+```
+
+Next calculate the residuals from the allometric model for the standard deviation
+
+```{r surv residuals}
+
+surv_sd_resids <- mul_resids(mul_output = surv_sd_models, 
+                        mul_data = pop_multree, 
+                        Y_data_col = c("surv_sd")
+ )
+
+```
+
+
+#Plotting allometry model output
+
+Using the outputs for the life history metrics lets plot them out.
+
+```{r allometry for supp table}
+
+par(mfrow=c(2,3))
+
+##la
+plot(pop_multree$data$life_time_La ~ pop_multree$data$mass_g, pch = 16,
+     xlab = expression('log'[10]*" mass"),
+     ylab = "Age at sexual maturity")
+abline(summary(La_models)[1],summary(La_models)[2])
+
+#M_rep_lif_exp
+plot(pop_multree$data$M_rep_lif_exp ~ pop_multree$data$mass_g, pch = 16,
+          xlab = expression('log'[10]*" mass"),
+          ylab = "Life expectancy post maturity")
+abline(summary(M_rep_lif_exp_models)[1],summary(M_rep_lif_exp_models)[2])
+
+#generation time
+plot(pop_multree$data$gen_time ~ pop_multree$data$mass_g, pch = 16,
+          xlab = expression('log'[10]*" mass"),
+          ylab = "Generation time")
+abline(summary(gen_time_models)[1],summary(gen_time_models)[2])
+
+
+##mean repo rate
+plot(pop_multree$data$mean_repo_rate_stable_state ~ pop_multree$data$mass_g, pch = 16,
+          xlab = expression('log'[10]*" mass"),
+          ylab = "Mean reproductive rate")
+abline(summary(repo_models)[1],summary(repo_models)[2])
+
+
+
+#Gini
+plot(pop_multree$data$gini ~ pop_multree$data$mass_g, pch = 16,
+          xlab = expression('log'[10]*" mass"),
+          ylab = "Spread of reproduction")
+abline(summary(gini_models)[1],summary(gini_models)[2])
+
+#SD of survival
+plot(pop_multree$data$surv_sd ~ pop_multree$data$mass_g, pch = 16, 
+     xlab = expression('log'[10]*" mass"),
+     ylab = "Distribution of survival")
+abline(summary(surv_sd_models)[1],summary(surv_sd_models)[2])
+
+```
+
+
+
+Lets also plot out the model slope coefficients into a table.
+```{r plots for allometry table}
+
+##Allometric scaling
+
+par(mfrow=c(1,3))
+
+scaling_list <- list( La_B = La_models$mass_g,
+                      Sur_B = M_rep_lif_exp_models$mass_g,
+                      T_B = gen_time_models$mass_g, 
+                      Repo_B = repo_models$mass_g,
+                      life_shape_B = surv_sd_models$mass_g,
+                      gini_B = gini_models$mass_g
+                      )
+MultiDisPlot(scaling_list)
+
+
+##phylogentic signals
+phy_var_list <- list( La_B = la_prop_phlyo,
+                      Sur_B = M_rep_lif_exp_prop_phlyo,
+                      T_B = gen_time_prop_phlyo, 
+                      Repo_B = repo_prop_phlyo,
+                      life_shape_B = surv_sd_prop_phlyo,
+                      gini_B = gini_prop_phlyo
+                      )
+MultiDisPlot(phy_var_list)
+
+
+##population level variance
+species_var_list <- list(
+                      La_B = la_prop_spec,
+                      Sur_B = M_rep_lif_exp_prop_spec,
+                      T_B = gen_time_prop_spec, 
+                      Repo_B = repo_prop_spec,
+                      life_shape_B = surv_sd_prop_spec,
+                      gini_B = gini_prop_spec
+                      )
+MultiDisPlot(species_var_list, xlim = c(0,1))
+
+
+```
+
+
+
+Now lets create a dataset of these residuals for each PCA analysis. This includes, the main analysis, the analysis using mean reporductive rate with the population not at its stable state distribution, the analysis using the standard deviation of mxlx curve as a measure of the Gini index and the analysis with generation time removed.
+
+```{r MCMC residual data}
+
+#Main PCA dataset
+predicted_data <- data.frame(
+                        SD_mort = surv_sd_resids,
+                        La_r = La_resids,
+                        gen_r = gen_time_resids,
+                        M_repo = repo_resids,
+                        M_suv = M_rep_lif_exp_resids,
+                        gini_r = gini_resids
+                        )
+
+#PCA dataset using mean reporductive rate with the population not at its stable state distribution.
+predicted_data_M_repo_nst <- data.frame(
+                         SD_mort = surv_sd_resids,
+                        La_r = La_resids,
+                        gen_r = gen_time_resids,
+                        M_repo_nst = repo_nst_resids,
+                        M_suv = M_rep_lif_exp_resids,
+                        gini_r = gini_resids
+                        )
+
+#PCA dataset using the standard deviation of the mxlx curve
+predicted_data_mxlxsd <- data.frame(
+                        SD_mort = surv_sd_resids,
+                        La_r = La_resids,
+                        gen_r = gen_time_resids,
+                        M_repo = repo_resids,
+                        M_suv = M_rep_lif_exp_resids,
+                        mxlxsd = mxlxsd_resids
+                        )
+#PCA dataset without generation time.
+predicted_data_noT <- data.frame(
+                         SD_mort = surv_sd_resids,
+                        La_r = La_resids,
+                        M_repo = repo_resids,
+                        M_suv = M_rep_lif_exp_resids,
+                        gini = gini_resids
+                        )
+
+```
+
+#PCA
+
+Now we run a PCA for each of the datasets of residuals from the life history allometric models. We use Horn's Parallel Analysis of Principal Components to test for the number of axis to retain. Note that for ease of interpretation the sign of some axis was reversed in the corresponding supplementary table 3 so that the fast slow axis alway went from fast on the left to slow on the right. 
+
+First the main analysis
+```{r MCMC PCA}
+pca_res <- prcomp(predicted_data)
+pca_res
+
+horn_res <- paran(predicted_data)
+
+```
+
+
+Next the analysis with reporductive rate with the population not at the stable state distribution,
+```{r MCMC pca_nst}
+pca_nst <- prcomp(predicted_data_M_repo_nst)
+
+pca_nst
+
+horn_nst <- paran(predicted_data_M_repo_nst)
+
+```
+
+Next the analysis with generation time not included.
+
+```{r MCMC predicted_data_mxlxsd}
+pca_mxlxsd <- prcomp(predicted_data_mxlxsd)
+
+pca_mxlxsd
+
+horn_mxlxsd <- paran(predicted_data_mxlxsd)
+
+```
+
+
+Next the analysis with generation time not included.
+
+```{r MCMC predicted_data_noT}
+pca_noT <- prcomp(predicted_data_noT)
+
+pca_noT
+
+horn_noT <- paran(predicted_data_noT)
+
+```
+
+
+
+
+

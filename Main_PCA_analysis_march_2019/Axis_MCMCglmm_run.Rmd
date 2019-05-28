@@ -3,66 +3,46 @@ title: "Axis_analysis_18_feb_2019"
 author: "Kevin Healy"
 date: "18 feb 2019"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
-Lets source our packages etc.
-```{r source functions}
+This script uses the metrics estimated in the previous scripts to run a series of `MCMCglmm` models in order to fit phylogentic regressions for each of the life history metrics against body mass and the matrix dimension. As each regression is run over 100 phylogentic trees using the mulTree package the output of each model is exported out of the R enviornment into the current directory. The required elements can then be read in as needed for the rest of the analysis. For more on the `multree` package see https://github.com/TGuillerme/mulTree
 
-library(popbio)
-library(popdemo)
-library(ape)
-library(caper)
+##Note running this script in full will result in a runtime of approximatly 1 week.
+
+
+First we load the required packages including MCMCglmm and the mulTree package which runs the MCMCglmm models over the 100 phylogenies.
+```{r source functions, message = FALSE, results='hide', warning = FALSE}
+
 library(phytools)
 library(MCMCglmm)
 library(mulTree)
-library(ineq)
-library(pspline)
-library(paran)
 
-#devtools to get the Mage package
-library(devtools)
 source("Demography_functions.R")
 ```
 
-You should have calulated all the population matrics and created a dataset to uplaod for the analysis here. 
+Next we upload the datafile which has the life history metrics calculated from the previous Pop_metric_calulation script.
 
 ```{r  data}
 
-pop_data <- read.csv("axis_analysis_data_4_march_2019.csv", 
+pop_data <- read.csv("axis_analysis_data.csv", 
                          sep = ",", header = T)
 
 ```
 
-```{r  how many have multiple pops}
-unq_sp <- unique(pop_data$species)
+Next we upload the matching distribution of phylogenies calculated from the previous Phylogeny_construction and Pop_metric_calulation scripts. We do a quick ultrametric check and then plot out our tree.
 
-pop_length <- data.frame(matrix(0, nrow = length(unq_sp), ncol = c(2)))
-for(i in 1:length(unq_sp)){
-
-pop_length[i,1] <- as.character(pop_data[pop_data$species == as.character(unq_sp[i]),2])[1]
-
-pop_length[i,2] <- as.numeric(as.vector(length(pop_data[pop_data$species == as.character(unq_sp[i]),1])))
-
-}
-
-```
-
-We will also have porduced a bunch of phylogentic trees with some error in order to conduct our analysis.
-
-```{r phylogeny}
+```{r phylogeny, message = FALSE, warning = FALSE, fig.align ='center'}
 
 axis_trees <- read.tree("axis_analysis_phylo.tre")
-##remove this for the main run
-#axis_trees <- axis_trees[1:3]
 
-#small fix on ultrametric problem
+
+#check if ultrametric
 is_ultra <- vector()
 for(i in 1:100) { 
   is_ultra[i] <- is.ultrametric(axis_trees[[i]])
   }
-
 ultra_row <- which(is_ultra ==TRUE)
 
 axis_trees <- axis_trees[ultra_row]
@@ -70,23 +50,14 @@ axis_trees <- axis_trees[ultra_row]
 plot(axis_trees[[1]], cex = 0.2, type = "fan")
 
 
-##this will be when its a multiphy object
-#plot(com_tree[[sample(seq(1:(length(com_tree))),1)]], cex = 0.2)
-```
-
-Lets also caluculate mean life expectancy divided by max life expectancy
-```{r mean e/max e }
-
-life_shape <-  pop_data$mean_life_expect/pop_data$surv_95
-
-pop_data$life_shape <- life_shape
 ```
 
 
 
+We then apply a log10 transform to each of the life histroy metrics.
 
-Log10 the non index based metrics
-```{r log data }
+
+```{r log data,  message = FALSE, warning = FALSE}
 
 log_list <- c("life_time_La",
               "mean_repo_rate_stable_state",
@@ -102,11 +73,10 @@ pop_data_log[,log_list] <- sapply(pop_data[,log_list], function(x) log10(x))
 
 ```
 
-Now let mean center all the data
+And mean center the data
 
 ```{r mean center data }
-mean_c_list  <- c("life_shape", 
-                  "life_time_La", 
+mean_c_list  <- c( "life_time_La", 
                   "mean_repo_rate",
                   "gen_time",
                   "M_rep_lif_exp",
@@ -123,30 +93,15 @@ pop_data_log_mc[,mean_c_list] <- sapply(pop_data_log[,mean_c_list], function(x) 
 ```
 
 
-Lets do a quick panal plot
-```{r panel plot}
-pairs(pop_data_log_mc[,c("life_shape", 
-                  "life_time_La",
-                  "mean_repo_rate_stable_state",
-                  "mean_repo_rate",
-                  "gen_time",
-                  "gini",
-                  "M_rep_lif_exp",
-                  "matrix_size",
-                  "mass_g")])
+#MCMCglmm
 
-```
-
-
-
-
-First we make a multree object so we can loop each of the models through the trees
+First we make a multree object that holds both the data and the multiphylo object. We also specify the random terms which in this case are the animal term for the phylogentic random effect and species for withn speices population level variation.
 ```{r mulTree}
 pop_multree <- as.mulTree(data = pop_data_log_mc, tree = axis_trees, taxa = "animal", rand.terms = ~animal + species)
 
 ```
 
-Now lets set a prior
+Now now also set a prior
 ```{r MCMC prior}
 
 prior<-list(R = list(V = 1/2, nu=0.002), 
@@ -155,145 +110,140 @@ prior<-list(R = list(V = 1/2, nu=0.002),
 
 ```
 
-and general parameters
+
+We then set the number of iterations, thinning and the burnin to 1100000, 500 and 100000 as these have previously been found to give outputs where the chains converge and where the effective sample size is more then 1000. These criterion are automatcally checked as MulTree runs each model and are stored in the files ending _conv.rda
+
+For the of running this script we run a dummy veresion with much lower parameters. For the full run use thr parameters above.
+
 ```{r MCMC parameters}
 
-parameters <- c(1100000, 500, 100000)
+#parameters <- c(1100000, 500, 100000)
+parameters <- c(2200, 1, 200)
+
 
 ```
 
 
-survial shape metric
+Now we run each sets of models. The effective sample size (ESS) is set to 1000 and the number of chains to 2. This applies to each phylogeny so there will be 200 chains for each metric per run. 
 
-```{r survial shape metric allometries mulTree run}
-formula_life_shape <- life_shape ~ mass_g + matrix_size
-
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_life_shape,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "life_shape_run",
-#        ESS = 1000,
-#        chains = 2)
-```
-
-
-age at first reproduction
+#Age at first reproduction
 
 ```{r La allometries mulTree run}
 formula_la <- life_time_La ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_la,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "la_run",
-#        ESS = 1000,
-#        chains = 2)
+mulTree(mulTree.data = pop_multree,
+        formula = formula_la,
+        priors = prior,
+        parameters = parameters,
+        output = "la_run",
+        ESS = 1000,
+        chains = 2)
 ```
 
 
-Lets run it for mean reproductive rate with the population at a stable state distribution.
+#Mean reproductive rate with the population at a stable state distribution.
 
 
 ```{r mean_repo_rate allometries mulTree run}
 formula_mean_repo_rate <- mean_repo_rate_stable_state ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_mean_repo_rate,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "mean_repo_rate_run",
-#        ESS = 1000,
-#        chains = 2)
+mulTree(mulTree.data = pop_multree,
+        formula = formula_mean_repo_rate,
+        priors = prior,
+        parameters = parameters,
+        output = "mean_repo_rate_run",
+        ESS = 1000,
+        chains = 2)
 ```
+
+
+
+#Mean reproductive rate with the population not at a stable state distribution.
 
 
 ```{r mean_repo_rate_st allometries mulTree run}
 formula_mean_repo_rate_nst <- mean_repo_rate ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_mean_repo_rate_nst,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "mean_repo_rate_nst_run",
-#        ESS = 1000,
-#        chains = 2)
+mulTree(mulTree.data = pop_multree,
+        formula = formula_mean_repo_rate_nst,
+        priors = prior,
+        parameters = parameters,
+        output = "mean_repo_rate_nst_run",
+        ESS = 1000,
+        chains = 2)
 ```
 
 
-standard deviation of mxlx
 
-
-```{r mxlxsd allometries mulTree run}
-formula_mxlxsd <- mxlxsd ~ mass_g + matrix_size
-
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_mxlxsd,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "mxlxsd_logged_run",
-#        ESS = 1000,
-#        chains = 2)
-```
-
-
-Lets run it for generation time
-
+#Generation Time
 
 ```{r gen allometries mulTree run}
 formula_gen_time <- gen_time ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_gen_time,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "gen_time_run",
-#        ESS = 1000,
-#        chains = 2)
+mulTree(mulTree.data = pop_multree,
+        formula = formula_gen_time,
+        priors = prior,
+        parameters = parameters,
+        output = "gen_time_run",
+        ESS = 1000,
+        chains = 2)
 ```
 
 
-Lets run it for life expectancy conditional on reaching sexual maturity
+#Life expectancy conditional on reaching sexual maturity
 
 
 ```{r M_rep_lif_exp allometries mulTree run}
 formula_M_rep_lif_exp <- M_rep_lif_exp ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_M_rep_lif_exp,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "M_rep_lif_exp_run",
-#        ESS = 1000,
-#        chains = 2)
+mulTree(mulTree.data = pop_multree,
+        formula = formula_M_rep_lif_exp,
+        priors = prior,
+        parameters = parameters,
+        output = "M_rep_lif_exp_run",
+        ESS = 1000,
+        chains = 2)
 ```
 
 
-Lets run it for the gini index
+#Reporductive spread as measured using the gini index
 
 
 ```{r gini allometries mulTree run}
 formula_gini <- gini ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
-#        formula = formula_gini,
-#        priors = prior,
-#        parameters = parameters,
-#        output = "gini_run",
-#        ESS = 1000,
-#        chains = 2)
+mulTree(mulTree.data = pop_multree,
+        formula = formula_gini,
+        priors = prior,
+        parameters = parameters,
+        output = "gini_run",
+        ESS = 1000,
+        chains = 2)
 ```
 
 
+#Standard deviation of reporduction as measured using mxlx
 
 
-Lets run it for the standard deviation of mortality rates
+```{r mxlxsd allometries mulTree run}
+formula_mxlxsd <- mxlxsd ~ mass_g + matrix_size
+
+mulTree(mulTree.data = pop_multree,
+        formula = formula_mxlxsd,
+        priors = prior,
+        parameters = parameters,
+        output = "mxlxsd_logged_run",
+        ESS = 1000,
+        chains = 2)
+```
+
+
+#Standard deviation of mortality rates
 
 ```{r surv_sd allometries mulTree run}
 formula_surv_sd <- surv_sd ~ mass_g + matrix_size
 
-#mulTree(mulTree.data = pop_multree,
+mulTree(mulTree.data = pop_multree,
         formula = formula_surv_sd,
         priors = prior,
         parameters = parameters,

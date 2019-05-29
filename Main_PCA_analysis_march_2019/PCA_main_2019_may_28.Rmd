@@ -737,4 +737,629 @@ horn_noT <- paran(predicted_data_noT)
 
 
 
+#PCA plots
+
+Note that for ease of interpretation the sign of some axis was reversed so that the fast slow axis goes from fast on the left to slow on the right.
+
+```{r flipping rotation}
+results <- pca_res
+results$rotation[,"PC1"] <- -results$rotation[,"PC1"]
+results$x[,"PC1"] <- -results$x[,"PC1"]
+results$rotation[,"PC2"] <- results$rotation[,"PC2"]
+results$x[,"PC2"] <- results$x[,"PC2"]
+```
+
+
+
+We then set up the colors we will give to each of the taxinommic groups, the color of the PC arrows and the life history symbols 
+```{r set up the plot figure}
+
+result <- results
+
+loadings <- as.data.frame(result$rotation)
+
+loadings[,"col"]=c("gray50",
+                   "gray50",
+                   "gray50",
+                   "gray50",
+                   "gray50",
+                   "gray50"
+                   )
+
+loadings$LHT=rownames(loadings)
+
+
+loadings$LHT=c("surv_sd",
+               "La",
+               "gen_time",
+               "mean_repo_rate",
+               "M_suv"
+               ,"gini_r"
+               )
+
+loadings$LHTexpr <-  list(
+                          expression(sigma),
+                          expression("L"[alpha]), 
+                          expression("T"),
+                          expression(phi), 
+                          expression(Rep["e"]),
+                          expression("G")
+                       )
+arrowThickness=2.9
+sizeArrowLetters=1
+scalingArrows=2.5
+scalingLetters=2.9
+
+class_match <- vector()
+species_match <- vector()
+loads_taxa <- data.frame(results$x)
+
+
+for(i in 1:length(loads_taxa[,1])){
+  
+   class_match[i] <- as.vector(pop_multree$data[i,"taxa_name"])
+   species_match[i] <- as.vector(pop_multree$data[i,"species"])
+
+   }
+
+
+pca_data <- data.frame(loads_taxa,
+                       class_match = as.vector(pop_multree$data[,"taxa_name"]), 
+                       species_match = as.vector(pop_multree$data[,"species"]),
+                       PCA_moblist = as.vector(pop_multree$data[,"mode_of_life"]),
+                       PCA_met = as.vector(pop_multree$data[,"met_rate"]),
+                       PCA_repo = as.vector(pop_multree$data[,"repo_output"]),
+                       PCA_iucn = as.vector(pop_multree$data[,"IUCN"]),
+                       animal = as.vector(pop_multree$data[,"species"])
+                       )
+
+
+
+mam_col <- rgb(0,136,170, 
+               max= 255)
+
+bird_col <- rgb(255,153,85, 
+                max= 255)
+
+rep_col <- rgb(147,172,147,
+               max= 255)
+
+fish_col <- rgb(135,205,222, 
+                max= 255)
+
+sponge_col <- rgb(211,95,141, 
+                  max= 255)
+
+coral_col <- rgb(153,85,255, 
+                 max= 255)
+
+gast_col <- rgb(255,170,238, 
+                max= 255)
+
+biv_col <- rgb(205,135,222,
+               max= 255)
+
+shark_col <- rgb(85,0,212, 
+                 max= 255)
+
+```
+
+
+Now lets plot out the two retained axis from our PCA.
+
+```{r PCA plot}
+
+
+plot(pca_data[,1], 
+     pca_data[,2], 
+     pch=16, 
+     cex = 0.1, 
+     col = "white", 
+     xlab= "PCA",
+     ylab= "PCA 2")
+
+points(pca_data[pca_data$class_match == "Mammalia",1], 
+       pca_data[pca_data$class_match == "Mammalia",2], 
+       pch=16, 
+       col = mam_col)
+
+points(pca_data[pca_data$class_match == "Aves",1], 
+       pca_data[pca_data$class_match == "Aves",2], 
+       pch=16, 
+       col = bird_col)
+
+points(pca_data[pca_data$class_match == "Reptilia",1], 
+       pca_data[pca_data$class_match == "Reptilia",2], 
+       pch=16, 
+       col = rep_col)
+
+points(pca_data[pca_data$class_match == "Actinopterygii",1], 
+       pca_data[pca_data$class_match == "Actinopterygii",2], 
+       pch=16, 
+       col = fish_col)
+
+points(pca_data[pca_data$class_match == "Gastropoda",1], 
+       pca_data[pca_data$class_match == "Gastropoda",2], 
+       pch=16, 
+       col = gast_col)
+
+points(pca_data[pca_data$class_match == "Demospongiae",1], 
+       pca_data[pca_data$class_match == "Demospongiae",2], 
+       pch=16, 
+       col = sponge_col)
+
+points(pca_data[pca_data$class_match == "Anthozoa",1], 
+       pca_data[pca_data$class_match == "Anthozoa",2], 
+       pch=16, 
+       col = coral_col)
+
+points(pca_data[pca_data$class_match == "Bivalvia",1], 
+       pca_data[pca_data$class_match == "Bivalvia",2], 
+       pch=16,
+       col = biv_col)
+
+points(pca_data[pca_data$class_match == "Elasmobranchii",1], 
+       pca_data[pca_data$class_match == "Elasmobranchii",2], 
+       pch=16,
+       col = shark_col)
+
+###And lets add Humans
+points(pca_data[pca_data$species_match == "Homo_sapiens",1], 
+       pca_data[pca_data$species_match == "Homo_sapiens",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+##and other points
+points(pca_data[pca_data$species_match == "Elephas_maximus",1], 
+       pca_data[pca_data$species_match == "Elephas_maximus",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Fulmarus_glacialis",1], 
+       pca_data[pca_data$species_match == "Fulmarus_glacialis",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Tympanuchus_cupido",1], 
+       pca_data[pca_data$species_match == "Tympanuchus_cupido",2], 
+       pch= "T", 
+       col = "white")
+
+points(pca_data[pca_data$species_match == "Gyps_coprotheres",1], 
+       pca_data[pca_data$species_match == "Gyps_coprotheres",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Crocodylus_johnsoni",1],
+       pca_data[pca_data$species_match == "Crocodylus_johnsoni",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Urocitellus_armatus",1], 
+       pca_data[pca_data$species_match == "Urocitellus_armatus",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Paramuricea_clavata",1], 
+       pca_data[pca_data$species_match == "Paramuricea_clavata",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Oncorhynchus_tshawytscha",1], 
+       pca_data[pca_data$species_match == "Oncorhynchus_tshawytscha",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Mya_arenaria",1], 
+       pca_data[pca_data$species_match == "Mya_arenaria",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+points(pca_data[pca_data$species_match == "Clemmys_guttata",1], 
+       pca_data[pca_data$species_match == "Clemmys_guttata",2], 
+       pch= 16, 
+       col = "white", 
+       cex = 0.7)
+
+
+arrows(x0=0,
+       y0=0,
+       x1=loadings[,1]*scalingArrows,
+       y1=loadings[,2]*scalingArrows,
+       col="black", 
+       lwd=2)
+
+arrows(x0=0,
+       y0=0,
+       x1=loadings[,1]*scalingArrows,
+       y1=loadings[,2]*scalingArrows,
+       col=as.character(loadings$col), 
+       lwd=arrowThickness)
+
+
+text(loadings[1,"PC1"]*scalingLetters-.0,
+     loadings[1,"PC2"]*scalingLetters,
+     loadings$LHTexpr[[1]],
+     col = loadings$col[1], 
+     cex=sizeArrowLetters)
+
+text(loadings[2,"PC1"]*scalingLetters-.0,
+     loadings[2,"PC2"]*scalingLetters,
+     loadings$LHTexpr[[2]],
+     col = loadings$col[2], 
+     cex=sizeArrowLetters)
+
+text(loadings[3,"PC1"]*scalingLetters+.0,
+     loadings[3,"PC2"]*scalingLetters,
+     loadings$LHTexpr[[3]],
+     col = loadings$col[3], 
+     cex=sizeArrowLetters)
+
+text(loadings[4,"PC1"]*scalingLetters-.0,
+     loadings[4,"PC2"]*scalingLetters,
+     loadings$LHTexpr[[4]],
+     col = loadings$col[4], 
+     cex=sizeArrowLetters)
+
+text(loadings[5,"PC1"]*scalingLetters-.0,
+     loadings[5,"PC2"]*scalingLetters,
+     loadings$LHTexpr[[5]],
+     col = loadings$col[5], 
+     cex=sizeArrowLetters)
+
+text(loadings[6,"PC1"]*scalingLetters+.0,
+     loadings[6,"PC2"]*scalingLetters,
+     loadings$LHTexpr[[6]],
+     col = loadings$col[6], 
+     cex=sizeArrowLetters)
+
+```
+
+
+
+
+#Mode of life analysis analysis
+
+Using PC1 we test how different modes of life are distributed across the portion of life histroy space associated with the fast-slow continuum.
+
+First lets plot out how differnt modes of life are distributed across PC1.
+
+
+```{r Mode of life plot} 
+
+#put the mode-of-life data into a formate that can be plotted with the
+#MultiDisPlot function
+
+PCA_moblist <- list(semi_fossorial = pca_data[pca_data$PCA_moblist == "semi_fossorial",1],
+                     pelagic = pca_data[pca_data$PCA_moblist == "pelagic",1], 
+                     terrestrial = pca_data[pca_data$PCA_moblist == "terrestrial",1],
+                     semi_aquatic = pca_data[pca_data$PCA_moblist == "semi_aquatic",1],
+                     volant = pca_data[pca_data$PCA_moblist == "volant",1],
+                     demersal = pca_data[pca_data$PCA_moblist == "demersal",1],
+                     arboreal = pca_data[pca_data$PCA_moblist == "arboreal",1],
+                     sessile = pca_data[pca_data$PCA_moblist == "sessile",1]
+                     )
+
+
+#use the MultiDisPlot function to plot out the groups
+#with credibility intervals
+MultiDisPlot(PCA_moblist,
+             yaxt = "n",
+             xlab = "PC1",
+             ylab = "",
+             bty = "n")
+
+#Plot the mode of life groups on y axis
+tick_lables <- names(PCA_moblist)
+
+axis(2,
+     1:length(tick_lables),
+     labels = tick_lables,
+     las=1,
+     cex.axis = 0.5)
+
+#To plot the species on we need to convert the names into ther associated tick
+#mark.
+mob_match <- as.vector(pca_data$PCA_moblist)
+
+for(i in 1:(length(tick_lables))){
+mob_match[mob_match == tick_lables[i]] <- i
+}
+
+mob_match <- as.numeric(mob_match)
+pca_data$mob_match <- mob_match
+
+
+#Plot the points onto the figure.
+points(pca_data[pca_data$class_match == "Mammalia","mob_match"] ~ pca_data[pca_data$class_match == "Mammalia",1], 
+       col = mam_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Aves","mob_match"] ~ pca_data[pca_data$class_match == "Aves",1], 
+       col = bird_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Reptilia","mob_match"] ~ pca_data[pca_data$class_match == "Reptilia",1], 
+       col = rep_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Actinopterygii","mob_match"] ~ pca_data[pca_data$class_match == "Actinopterygii",1], col = fish_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Gastropoda","mob_match"] ~ pca_data[pca_data$class_match == "Gastropoda",1], col = gast_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Demospongiae","mob_match"] ~ pca_data[pca_data$class_match == "Demospongiae",1], col = sponge_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Anthozoa","mob_match"] ~ pca_data[pca_data$class_match == "Anthozoa",1], col = coral_col, pch = 20, cex = 0.5)
+
+points(pca_data[pca_data$class_match == "Bivalvia","mob_match"] ~ pca_data[pca_data$class_match == "Bivalvia",1], col = biv_col, pch = 20, cex = 0.5)
+
+
+
+```
+
+
+
+Now lets test whether these differences of mode of life on the fast slow axis are differnt from each other whilst accounting for phylogentic relationship and population level variation. We do this using a MCMCglmm model both seperately for terrestrial groups and aquatic groups.
+
+First we run the aquatic groups. To avoid long runs for this script we run it for one tree over two chains.
+
+```{r aquatic ecology tests}
+
+#subset to aquatic species
+aquatic_res <- pca_data[pca_data$PCA_moblist == "sessile" 
+                        | pca_data$PCA_moblist == "demersal"
+                        | pca_data$PCA_moblist == "pelagic",]
+
+
+#We set pelagic species as our base level.
+aquatic_res$PCA_moblist <- factor(aquatic_res$PCA_moblist, 
+                                  levels = c("pelagic", 
+                                             "sessile", 
+                                             "demersal"))
+
+
+#set a prior
+prior<-list(R = list(V = 1/2, nu=0.002), 
+            G = list(G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1), 
+                             alpha.V= diag(1)*10^3), 
+                     G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1),
+                             alpha.V= diag(1)*10^3)))
+
+#run the analysis
+#Chain 1
+aquatic_pc1_c1 <- MCMCglmm(PC1 ~ PCA_moblist,
+                     data = aquatic_res,
+                     random=~animal + species_match,
+                     pedigree = axis_trees[[1]], 
+                     prior = prior, 
+                     nitt = c(1100000), 
+                     burnin = 100000, 
+                     thin = 500, 
+                     verbose = F)
+#Chain 2
+aquatic_pc1_c2 <- MCMCglmm(PC1 ~ PCA_moblist,
+                     data = aquatic_res,
+                     random=~animal + species_match,
+                     pedigree = axis_trees[[1]], 
+                     prior = prior, 
+                     nitt = c(1100000), 
+                     burnin = 100000, 
+                     thin = 500, 
+                     verbose = F)
+
+
+#Check the chains converge
+gelman.diag(mcmc.list(aquatic_pc1_c1$Sol, 
+                      aquatic_pc1_c2$Sol))
+
+gelman.diag(mcmc.list(aquatic_pc1_c1$VCV, 
+                      aquatic_pc1_c2$VCV))
+
+#summary
+summary(aquatic_pc1_c1)
+
+
+#Calculate phyogentic signal, population level variation and residual variation.
+aquatic_pc1_vcv_phylo <- aquatic_pc1$VCV[,1]
+aquatic_pc1_vcv_spec <- aquatic_pc1$VCV[,2]
+aquatic_pc1_vcv_units <- aquatic_pc1$VCV[,3]
+
+#Phyogentic signal
+aquatic_pc1_phylo <- aquatic_pc1_vcv_phylo/
+                           c(aquatic_pc1_vcv_phylo 
+                             + aquatic_pc1_vcv_spec 
+                             + aquatic_pc1_vcv_units)
+#Population level variation
+aquatic_pc1_spec <- aquatic_pc1_vcv_spec/
+                           c(aquatic_pc1_vcv_phylo 
+                             + aquatic_pc1_vcv_spec 
+                             + aquatic_pc1_vcv_units)
+#Residual
+aquatic_pc1_units <- aquatic_pc1_vcv_units/
+                           c(aquatic_pc1_vcv_phylo 
+                             + aquatic_pc1_vcv_spec 
+                             + aquatic_pc1_vcv_units)
+
+
+hdr(aquatic_pc1_phylo)$mode
+
+hdr(aquatic_pc1_spec)$mode
+
+hdr(aquatic_pc1_units)$mode
+
+```
+
+
+Now lets do the same for terrestrial species.
+
+```{r terrestrial ecology tests}
+
+##terrestiral species
+
+ter_res <- pca_data[pca_data$PCA_moblist == "terrestrial" 
+                    | pca_data$PCA_moblist == "arboreal"
+                    | pca_data$PCA_moblist == "volant" 
+                    | pca_data$PCA_moblist == "semiaquatic" 
+                    | pca_data$PCA_moblist == "semifossorial",]
+
+ter_res$PCA_moblist <- factor(ter_res$PCA_moblist, 
+                               levels = c("terrestrial", 
+                                          "arboreal", 
+                                          "volant", 
+                                          "semiaquatic",
+                                          "semifossorial"))
+
+
+#set a prior
+prior<-list(R = list(V = 1/2, nu=0.002), 
+            G = list(G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1), 
+                             alpha.V= diag(1)*10^3), 
+                     G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1),
+                             alpha.V= diag(1)*10^3)))
+
+
+ter_pc1_c1 <- MCMCglmm(PC1 ~ PCA_moblist,
+                    data = ter_res,
+                    random=~animal + species_match,
+                    pedigree = axis_trees[[1]], 
+                    prior = prior, 
+                    nitt = c(1100000), 
+                    burnin = 100000, 
+                    thin = 500, 
+                    verbose = F)
+
+
+ter_pc1_c2 <- MCMCglmm(PC1 ~ PCA_moblist,
+                    data = ter_res,
+                    random=~animal + species_match,
+                    pedigree = axis_trees[[1]], 
+                    prior = prior, 
+                    nitt = c(1100000), 
+                    burnin = 100000, 
+                    thin = 500, 
+                    verbose = F)
+
+
+#Check the chains converge
+gelman.diag(mcmc.list(ter_pc1_c1$Sol, 
+                      ter_pc1_c2$Sol))
+
+gelman.diag(mcmc.list(ter_pc1_c1$VCV, 
+                      ter_pc1_c2$VCV))
+
+
+summary(ter_pc1_c1)
+
+ter_pc1_vcv_phylo <- ter_pc1$VCV[,1]
+ter_pc1_vcv_spec <- ter_pc1$VCV[,2]
+ter_pc1_vcv_units <- ter_pc1$VCV[,3]
+
+ter_pc1_phylo <- ter_pc1_vcv_phylo/
+  c(ter_pc1_vcv_phylo + ter_pc1_vcv_spec + ter_pc1_vcv_units)
+
+ter_pc1_spec <- ter_pc1_vcv_spec/
+  c(ter_pc1_vcv_phylo + ter_pc1_vcv_spec + ter_pc1_vcv_units)
+
+ter_pc1_units <- ter_pc1_vcv_units/
+  c(ter_pc1_vcv_phylo + ter_pc1_vcv_spec + ter_pc1_vcv_units)
+
+hdr(ter_pc1_phylo)$mode
+
+hdr(ter_pc1_spec)$mode
+
+hdr(ter_pc1_units)$mode
+
+
+```
+
+
+
+
+
+
+
+
+#Metabolic rate analysis
+
+Next we analysis how metabolic rate alings with the fast slow continuum. We will use a similar approach to the previous allometric models by using MCMCglmm models.
+
+
+```{r metabolic rate plot}
+
+pca_data$met_PCA <- met_PCA
+
+pca_data$animal <- pca_data$species_match
+pca_data$met_rate <- as.numeric(as.vector(pca_data$met_PCA))
+
+pca_data_met <- na.omit(pca_data[,c("species_match","animal","PC1","class_match","met_rate")])
+
+
+
+
+met_mod <- MCMCglmm(PC1 ~ log10(met_rate) ,
+                     data = pca_data_met,
+                     random=~animal + species_match,
+                     pedigree = axis_trees[[1]], 
+                     prior = prior, 
+                     nitt = c(1100000), burnin = 100000, thin = 500, verbose = F)
+
+summary(met_mod)
+
+met_mod_phylo <- met_mod$VCV[,1]
+met_mod_spec <- met_mod$VCV[,2]
+met_mod_units <- met_mod$VCV[,3]
+
+met_mod_phylo_H <- met_mod_phylo/c(met_mod_phylo + met_mod_spec + met_mod_units)
+met_mod_spec_H <- met_mod_spec/c(met_mod_phylo + met_mod_spec + met_mod_units)
+met_mod_units_H <- met_mod_units/c(met_mod_phylo + met_mod_spec + met_mod_units)
+
+hdr(met_mod_phylo_H)
+hdr(met_mod_spec_H)
+hdr(met_mod_units_H)
+
+
+
+plot(log10(pca_data_met$met_rate), pca_data_met$PC1, pch = 16, col = "white", cex = 0.1)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Mammalia","met_rate"]), pca_data_met[pca_data_met$class_match == "Mammalia","PC1"], col = mam_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Aves","met_rate"]), pca_data_met[pca_data_met$class_match == "Aves","PC1"], col = bird_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Reptilia","met_rate"]), pca_data_met[pca_data_met$class_match == "Reptilia","PC1"], col = rep_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Actinopterygii","met_rate"]), pca_data_met[pca_data_met$class_match == "Actinopterygii","PC1"], col = fish_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Gastropoda","met_rate"]), pca_data_met[pca_data_met$class_match == "Gastropoda","PC1"], col = gast_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Demospongiae","met_rate"]), pca_data_met[pca_data_met$class_match == "Demospongiae","PC1"], col = sponge_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Anthozoa","met_rate"]), pca_data_met[pca_data_met$class_match == "Anthozoa","PC1"], col = coral_col, pch = 20, cex = 0.8)
+
+points(log10(pca_data_met[pca_data_met$class_match == "Bivalvia","met_rate"]), pca_data_met[pca_data_met$class_match == "Bivalvia","PC1"], col = biv_col, pch = 20, cex = 0.8)
+
+abline(hdr(met_mod$Sol[,1])$mode, hdr(met_mod$Sol[,2])$mode)
+
+```
+
+
+
+
+
+
+
+
 

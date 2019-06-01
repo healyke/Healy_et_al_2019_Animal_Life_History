@@ -1281,16 +1281,16 @@ hist(AAn_95_overlap_prop, xlab = "Proportion of overlap", main = "")
 
 myplot_AAn = ggplot(data.frame(Overlap =  AAn_95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Fish  - Coral Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AAn + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
+myplot_AAn + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
-ggsave("fish_coral.png", dpi=300, width=4, height=3)
-
-#hdr(AAn_95_overlap_prop, h = 10)
 
 
 #####fish - aves
@@ -1313,17 +1313,15 @@ hdr(AAv_95_overlap_prop)
 
 myplot_Aav = ggplot(data.frame(Overlap =  AAv_95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    geom_histogram(binwidth=0.1) +
+                    ggtitle("Fish  - Aves Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_Aav + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
-
-ggsave("fish_aves.png", dpi=300, width=4, height=3)
-
-
-
+myplot_Aav + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
 #####fish - gastropod
 AG95.overlap <- bayesianOverlap(ellipse_Actinopterygii, 
@@ -1343,16 +1341,16 @@ AG_95_overlap_prop[i]  <- AG95.overlap$overlap[i]/min(AG95.overlap[i,1:2])
 
 myplot_AG = ggplot(data.frame(Overlap =  AG_95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Fish  - Gastropod Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AG + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
+myplot_AG + theme_bw() + theme(panel.border = element_blank(),
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
 
-ggsave("fish_gastropod.png", dpi=300, width=4, height=3)
-
-#hdr(AG_95_overlap_prop)
 
 
 ##fish - mammal
@@ -1372,16 +1370,15 @@ Am_95_overlap_prop[i]  <- AM95.overlap$overlap[i]/min(AM95.overlap[i,1:2])
 
 myplot_AM = ggplot(data.frame(Overlap =  Am_95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Fish  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AM + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
-
-ggsave("fish_mammal.png", dpi=300, width=4, height=3)
-
-hdr(Am_95_overlap_prop)
+myplot_AM + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
 
 
 ###fish and reptiles
@@ -1401,16 +1398,15 @@ AR_95_overlap_prop[i]  <- AR95.overlap$overlap[i]/min(AR95.overlap[i,1:2])
 
 myplot_AR = ggplot(data.frame(Overlap =  AR_95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Fish  - Reptiles Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AR + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
-
-ggsave("fish_reptile.png", dpi=300, width=4, height=3)
-
-#hdr(AR_95_overlap_prop)
+myplot_AR + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
 
 
 
@@ -1431,16 +1427,15 @@ AnG95_overlap_prop[i]  <- AnG95.overlap$overlap[i]/min(AnG95.overlap[i,1:2])
 
 myplot_AnG = ggplot(data.frame(Overlap =  AnG95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Coral  - Gastropods Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AnG + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
-
-ggsave("coral_gastropod.png", dpi=300, width=4, height=3)
-
-#hdr(AnG95_overlap_prop)
+myplot_AnG + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
 
 ##coral mammal
@@ -1461,17 +1456,15 @@ AnM95_overlap_prop[i]  <- AnM95.overlap$overlap[i]/min(AnM95.overlap[i,1:2])
 
 myplot_AnM = ggplot(data.frame(Overlap =  AnM95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Coral  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AnM + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
-
-ggsave("coral_mammal.png", dpi=300, width=4, height=3)
-
-#hdr(AnM95_overlap_prop, h = 100)
-
+myplot_AnM + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
 
 ##coral reptile
@@ -1492,16 +1485,16 @@ AnR95_overlap_prop[i]  <- AnR95.overlap$overlap[i]/min(AnR95.overlap[i,1:2])
 
 myplot_AnR = ggplot(data.frame(Overlap =  AnR95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Coral  - Reptile Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AnR + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
+myplot_AnR + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
-ggsave("coral_reptile.png", dpi=300, width=4, height=3)
-
-#hdr(AnR95_overlap_prop)
 
 
 ###bird - gastropd
@@ -1522,16 +1515,15 @@ AvG95_overlap_prop[i]  <- AvG95.overlap$overlap[i]/min(AvG95.overlap[i,1:2])
 
 myplot_AvG = ggplot(data.frame(Overlap =  AvG95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Aves  - Gastropod Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AvG + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
-
-ggsave("aves_gastorpod.png", dpi=300, width=4, height=3)
-
-#hdr(AvG95_overlap_prop)
+myplot_AvG + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
 
 ####aves mammal
@@ -1551,16 +1543,16 @@ AvM95_overlap_prop[i]  <- AvM95.overlap$overlap[i]/min(AvM95.overlap[i,1:2])
 
 myplot_AvM = ggplot(data.frame(Overlap =  AvM95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Aves  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AvM + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
+myplot_AvM + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
-ggsave("aves_mammal.png", dpi=300, width=4, height=3)
-
-#hdr(AvM95_overlap_prop)
 
 
 ##### Aves reptile
@@ -1581,17 +1573,16 @@ AvR95_overlap_prop[i]  <- AvRR95.overlap$overlap[i]/min(AvRR95.overlap[i,1:2])
 
 myplot_AvR = ggplot(data.frame(Overlap =  AvR95_overlap_prop),
                     aes(Overlap)) +
-  geom_histogram(binwidth=0.1) + 
-  scale_x_continuous(limits = c(-0.05, 1.05))
+                    ggtitle("Aves  - Reptile Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
 
-myplot_AvR + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-text = element_text(size=20))
+myplot_AvR + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
 
-
-ggsave("aves_reptile.png", dpi=300, width=4, height=3)
-
-#hdr(AvR95_overlap_prop)
 
 
 
@@ -1613,6 +1604,8 @@ RG95_overlap_prop[i]  <- RG95.overlap$overlap[i]/min(RG95.overlap[i,1:2])
 
 myplot_RG = ggplot(data.frame(Overlap =  RG95_overlap_prop),
                     aes(Overlap)) +
+                    ggtitle("Reptile  - Gastropod Overlap") +
+
   geom_histogram(binwidth=0.1) + 
   scale_x_continuous(limits = c(-0.05, 1.05))
 

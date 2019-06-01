@@ -84,7 +84,10 @@ pop_data_log_mc[,mean_c_list] <- sapply(pop_data_log[,mean_c_list], function(x) 
 
 We also need to make a multree object that holds both the data and the multiphylo object and from which we will calulate the residuals from each of the modeel
 ```{r mulTree}
-pop_multree <- as.mulTree(data = pop_data_log_mc, tree = axis_trees, taxa = "animal", rand.terms = ~animal + species)
+pop_multree <- as.mulTree(data = pop_data_log_mc, 
+                          tree = axis_trees, 
+                          taxa = "animal",
+                          rand.terms = ~animal + species)
 
 ```
 
@@ -520,9 +523,17 @@ surv_sd_phlyo <- unlist(surv_sd_phlyo)
 surv_sd_spec <- unlist(surv_sd_spec)
 surv_sd_unit <- unlist(surv_sd_unit)
 
-surv_sd_prop_phlyo <- surv_sd_phlyo/(surv_sd_phlyo + surv_sd_spec + surv_sd_unit)
-surv_sd_prop_spec  <- surv_sd_spec/(surv_sd_phlyo + surv_sd_spec + surv_sd_unit)
-surv_sd_prop_residuals  <- surv_sd_unit/(surv_sd_phlyo + surv_sd_spec + surv_sd_unit)
+surv_sd_prop_phlyo <- surv_sd_phlyo/(surv_sd_phlyo 
+                                     + surv_sd_spec 
+                                     + surv_sd_unit)
+
+surv_sd_prop_spec  <- surv_sd_spec/(surv_sd_phlyo 
+                                    + surv_sd_spec 
+                                    + surv_sd_unit)
+
+surv_sd_prop_residuals  <- surv_sd_unit/(surv_sd_phlyo 
+                                         + surv_sd_spec 
+                                         + surv_sd_unit)
 
 
 #Phylogenetic signal
@@ -557,15 +568,20 @@ Using the outputs for the life history metrics lets plot them out.
 par(mfrow=c(2,3))
 
 ##la
-plot(pop_multree$data$life_time_La ~ pop_multree$data$mass_g, pch = 16,
+plot(pop_multree$data$life_time_La ~ pop_multree$data$mass_g,
+     pch = 16,
      xlab = expression('log'[10]*" mass"),
      ylab = "Age at sexual maturity")
-abline(summary(La_models)[1],summary(La_models)[2])
+
+abline(summary(La_models)[1],
+       summary(La_models)[2])
 
 #M_rep_lif_exp
-plot(pop_multree$data$M_rep_lif_exp ~ pop_multree$data$mass_g, pch = 16,
-          xlab = expression('log'[10]*" mass"),
-          ylab = "Life expectancy post maturity")
+plot(pop_multree$data$M_rep_lif_exp ~ pop_multree$data$mass_g, 
+     pch = 16,
+     xlab = expression('log'[10]*" mass"),
+     ylab = "Life expectancy post maturity")
+
 abline(summary(M_rep_lif_exp_models)[1],summary(M_rep_lif_exp_models)[2])
 
 #generation time
@@ -803,6 +819,7 @@ for(i in 1:length(loads_taxa[,1])){
    }
 
 
+#combine the pca results data with the external data
 pca_data <- data.frame(loads_taxa,
                        class_match = as.vector(pop_multree$data[,"taxa_name"]), 
                        species_match = as.vector(pop_multree$data[,"species"]),
@@ -810,6 +827,7 @@ pca_data <- data.frame(loads_taxa,
                        PCA_met = as.vector(pop_multree$data[,"met_rate"]),
                        PCA_repo = as.vector(pop_multree$data[,"repo_output"]),
                        PCA_iucn = as.vector(pop_multree$data[,"IUCN"]),
+                       PCA_met_type = as.vector(pop_multree$data[,"met_type"]),
                        animal = as.vector(pop_multree$data[,"species"])
                        )
 
@@ -1170,9 +1188,9 @@ summary(aquatic_pc1_c1)
 
 
 #Calculate phyogentic signal, population level variation and residual variation.
-aquatic_pc1_vcv_phylo <- aquatic_pc1$VCV[,1]
-aquatic_pc1_vcv_spec <- aquatic_pc1$VCV[,2]
-aquatic_pc1_vcv_units <- aquatic_pc1$VCV[,3]
+aquatic_pc1_vcv_phylo <- aquatic_pc1_c1$VCV[,1]
+aquatic_pc1_vcv_spec <- aquatic_pc1_c1$VCV[,2]
+aquatic_pc1_vcv_units <- aquatic_pc1_c1$VCV[,3]
 
 #Phyogentic signal
 aquatic_pc1_phylo <- aquatic_pc1_vcv_phylo/
@@ -1209,15 +1227,15 @@ Now lets do the same for terrestrial species.
 ter_res <- pca_data[pca_data$PCA_moblist == "terrestrial" 
                     | pca_data$PCA_moblist == "arboreal"
                     | pca_data$PCA_moblist == "volant" 
-                    | pca_data$PCA_moblist == "semiaquatic" 
-                    | pca_data$PCA_moblist == "semifossorial",]
+                    | pca_data$PCA_moblist == "semi_aquatic" 
+                    | pca_data$PCA_moblist == "semi_fossorial",]
 
 ter_res$PCA_moblist <- factor(ter_res$PCA_moblist, 
                                levels = c("terrestrial", 
                                           "arboreal", 
                                           "volant", 
-                                          "semiaquatic",
-                                          "semifossorial"))
+                                          "semi_aquatic",
+                                          "semi_fossorial"))
 
 
 #set a prior
@@ -1264,9 +1282,9 @@ gelman.diag(mcmc.list(ter_pc1_c1$VCV,
 
 summary(ter_pc1_c1)
 
-ter_pc1_vcv_phylo <- ter_pc1$VCV[,1]
-ter_pc1_vcv_spec <- ter_pc1$VCV[,2]
-ter_pc1_vcv_units <- ter_pc1$VCV[,3]
+ter_pc1_vcv_phylo <- ter_pc1_c1$VCV[,1]
+ter_pc1_vcv_spec <- ter_pc1_c1$VCV[,2]
+ter_pc1_vcv_units <- ter_pc1_c1$VCV[,3]
 
 ter_pc1_phylo <- ter_pc1_vcv_phylo/
   c(ter_pc1_vcv_phylo + ter_pc1_vcv_spec + ter_pc1_vcv_units)
@@ -1290,76 +1308,2138 @@ hdr(ter_pc1_units)$mode
 
 
 
-
-
-
 #Metabolic rate analysis
 
-Next we analysis how metabolic rate alings with the fast slow continuum. We will use a similar approach to the previous allometric models by using MCMCglmm models.
+Next we analysis how metabolic rate is associated with the fast slow continuum by regressing mass soecific metabolic rate against PC1.
+
+```{r metabolic rate models}
+
+#subset to species with metabolic rate data
+pca_data_met <- na.omit(pca_data[,c("PC1",
+                                    "species_match",
+                                    "class_match",
+                                    "animal",
+                                    "PCA_met")])
 
 
-```{r metabolic rate plot}
+#set a prior
+prior_met <-list(R = list(V = 1/2, nu=0.002), 
+            G = list(G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1), 
+                             alpha.V= diag(1)*10^3), 
+                     G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1),
+                             alpha.V= diag(1)*10^3)))
 
-pca_data$met_PCA <- met_PCA
-
-pca_data$animal <- pca_data$species_match
-pca_data$met_rate <- as.numeric(as.vector(pca_data$met_PCA))
-
-pca_data_met <- na.omit(pca_data[,c("species_match","animal","PC1","class_match","met_rate")])
 
 
+met_mod_ch1 <- MCMCglmm(PC1 ~ log10(PCA_met) ,
+                    data = pca_data_met,
+                    random=~animal + species_match,
+                    pedigree = axis_trees[[1]], 
+                    prior = prior_met, 
+                    nitt = c(1100000), 
+                    burnin = 100000, 
+                    thin = 500, 
+                    verbose = F)
 
 
-met_mod <- MCMCglmm(PC1 ~ log10(met_rate) ,
-                     data = pca_data_met,
-                     random=~animal + species_match,
-                     pedigree = axis_trees[[1]], 
-                     prior = prior, 
-                     nitt = c(1100000), burnin = 100000, thin = 500, verbose = F)
+met_mod_ch2 <- MCMCglmm(PC1 ~ log10(PCA_met) ,
+                    data = pca_data_met,
+                    random=~animal + species_match,
+                    pedigree = axis_trees[[1]], 
+                    prior = prior_met, 
+                    nitt = c(1100000), 
+                    burnin = 100000, 
+                    thin = 500, 
+                    verbose = F)
 
-summary(met_mod)
 
-met_mod_phylo <- met_mod$VCV[,1]
-met_mod_spec <- met_mod$VCV[,2]
-met_mod_units <- met_mod$VCV[,3]
+#Check the chains converge
+gelman.diag(mcmc.list(met_mod_ch1$Sol, 
+                      met_mod_ch2$Sol))
+
+gelman.diag(mcmc.list(met_mod_ch1$VCV, 
+                      met_mod_ch2$VCV))
+
+
+summary(met_mod_ch1)
+
+met_mod_phylo <- met_mod_ch1$VCV[,1]
+met_mod_spec <- met_mod_ch1$VCV[,2]
+met_mod_units <- met_mod_ch1$VCV[,3]
 
 met_mod_phylo_H <- met_mod_phylo/c(met_mod_phylo + met_mod_spec + met_mod_units)
 met_mod_spec_H <- met_mod_spec/c(met_mod_phylo + met_mod_spec + met_mod_units)
 met_mod_units_H <- met_mod_units/c(met_mod_phylo + met_mod_spec + met_mod_units)
 
-hdr(met_mod_phylo_H)
-hdr(met_mod_spec_H)
-hdr(met_mod_units_H)
+hdr(met_mod_phylo_H)$mode
+hdr(met_mod_spec_H)$mode
+hdr(met_mod_units_H)$mode
 
+```
 
+Lets also plot out how metabolic rate changes with a species position on the fast slow contiuum.
 
-plot(log10(pca_data_met$met_rate), pca_data_met$PC1, pch = 16, col = "white", cex = 0.1)
+```{r metabolic rate plot}
 
-points(log10(pca_data_met[pca_data_met$class_match == "Mammalia","met_rate"]), pca_data_met[pca_data_met$class_match == "Mammalia","PC1"], col = mam_col, pch = 20, cex = 0.8)
+plot(log10(pca_data_met$PCA_met), 
+     pca_data_met$PC1, 
+     pch = 16, 
+     col = "white", 
+     cex = 0.1,
+     xlab = "Log10  Mass specific metabolic rate (W/g)",
+     ylab = "PC1")
 
-points(log10(pca_data_met[pca_data_met$class_match == "Aves","met_rate"]), pca_data_met[pca_data_met$class_match == "Aves","PC1"], col = bird_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Mammalia","PCA_met"]), 
+       pca_data_met[pca_data_met$class_match == "Mammalia","PC1"], 
+       col = mam_col, pch = 20, cex = 0.8)
 
-points(log10(pca_data_met[pca_data_met$class_match == "Reptilia","met_rate"]), pca_data_met[pca_data_met$class_match == "Reptilia","PC1"], col = rep_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Aves","PCA_met"]), 
+       pca_data_met[pca_data_met$class_match == "Aves","PC1"], 
+       col = bird_col,
+       pch = 20,
+       cex = 0.8)
 
-points(log10(pca_data_met[pca_data_met$class_match == "Actinopterygii","met_rate"]), pca_data_met[pca_data_met$class_match == "Actinopterygii","PC1"], col = fish_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Reptilia","PCA_met"]), 
+       pca_data_met[pca_data_met$class_match == "Reptilia","PC1"], 
+       col = rep_col, 
+       pch = 20, 
+       cex = 0.8)
 
-points(log10(pca_data_met[pca_data_met$class_match == "Gastropoda","met_rate"]), pca_data_met[pca_data_met$class_match == "Gastropoda","PC1"], col = gast_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Actinopterygii","PCA_met"]), 
+       pca_data_met[pca_data_met$class_match == "Actinopterygii","PC1"], 
+       col = fish_col, 
+       pch = 20, 
+       cex = 0.8)
 
-points(log10(pca_data_met[pca_data_met$class_match == "Demospongiae","met_rate"]), pca_data_met[pca_data_met$class_match == "Demospongiae","PC1"], col = sponge_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Gastropoda","PCA_met"]), 
+       pca_data_met[pca_data_met$class_match == "Gastropoda","PC1"], 
+       col = gast_col, 
+       pch = 20,
+       cex = 0.8)
 
-points(log10(pca_data_met[pca_data_met$class_match == "Anthozoa","met_rate"]), pca_data_met[pca_data_met$class_match == "Anthozoa","PC1"], col = coral_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Demospongiae","PCA_met"]), 
+       pca_data_met[pca_data_met$class_match == "Demospongiae","PC1"], 
+       col = sponge_col,
+       pch = 20, 
+       cex = 0.8)
 
-points(log10(pca_data_met[pca_data_met$class_match == "Bivalvia","met_rate"]), pca_data_met[pca_data_met$class_match == "Bivalvia","PC1"], col = biv_col, pch = 20, cex = 0.8)
+points(log10(pca_data_met[pca_data_met$class_match == "Anthozoa","PCA_met"]), pca_data_met[pca_data_met$class_match == "Anthozoa","PC1"], col = coral_col, pch = 20, cex = 0.8)
 
-abline(hdr(met_mod$Sol[,1])$mode, hdr(met_mod$Sol[,2])$mode)
+points(log10(pca_data_met[pca_data_met$class_match == "Bivalvia","PCA_met"]), pca_data_met[pca_data_met$class_match == "Bivalvia","PC1"], col = biv_col, pch = 20, cex = 0.8)
+
+abline(hdr(met_mod_ch1$Sol[,1])$mode, hdr(met_mod_ch1$Sol[,2])$mode)
 
 ```
 
 
 
 
+#Reporductive productivity analysis
+
+As reporductive output is only defined by numbers of offspring in matrix models we also tested if reporductive productivity, the amount of reporductive mass produced per year, would be more strongly associated with the fast-slow contiuum as represented by PC1, then we found in the main PCA.
+
+```{r repo size  tests}     
+
+pca_data_repo <- na.omit(pca_data[,c("PC1",
+                                     "species_match",
+                                     "class_match",
+                                     "animal",
+                                     "PCA_repo")])
+
+
+#set a prior
+prior_repo <-list(R = list(V = 1/2, nu=0.002), 
+            G = list(G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1), 
+                             alpha.V= diag(1)*10^3), 
+                     G1=list(V = 1/2,
+                             n = 1, 
+                             alpha.mu=rep(0,1),
+                             alpha.V= diag(1)*10^3)))
+
+
+egg_size_ch1 <- MCMCglmm(PC1 ~ PCA_repo,
+                     data = pca_data_repo,
+                     random=~animal + species_match,
+                     pedigree = axis_trees[[1]], 
+                     prior = prior_repo, 
+                     nitt = c(11000000), 
+                     burnin = 1000000, 
+                     thin = 5000, 
+                     verbose = F)
+
+egg_size_ch2 <- MCMCglmm(PC1 ~ PCA_repo,
+                     data = pca_data_repo,
+                     random=~animal + species_match,
+                     pedigree = axis_trees[[1]], 
+                     prior = prior_repo, 
+                     nitt = c(11000000), 
+                     burnin = 1000000, 
+                     thin = 5000, 
+                     verbose = F)
+
+
+gelman.diag(mcmc.list(egg_size_ch1$Sol, 
+                      egg_size_ch2$Sol))
+
+gelman.diag(mcmc.list(egg_size_ch1$VCV, 
+                      egg_size_ch2$VCV))
+
+
+summary(egg_size_ch1)
+
+
+
+egg_size_phylo <- egg_size_ch1$VCV[,1]/(egg_size_ch1$VCV[,1] +
+                                         egg_size_ch1$VCV[,2] + 
+                                         egg_size_ch1$VCV[,3])
+
+egg_size_species <- egg_size_ch1$VCV[,2]/(egg_size_ch1$VCV[,1] +
+                                         egg_size_ch1$VCV[,2] + 
+                                         egg_size_ch1$VCV[,3])
+
+egg_size_units <- egg_size_ch1$VCV[,3]/(egg_size_ch1$VCV[,1] +
+                                         egg_size_ch1$VCV[,2] + 
+                                         egg_size_ch1$VCV[,3])
+
+hdr(egg_size_phylo)$mode
+
+hdr(egg_size_species)$mode
+
+hdr(egg_size_units)$mode
+
+
+```
 
 
 
 
+#Ellipses
+
+To test how different groupings are associated with PCA space we fit a series of ellipses using the SIBER package. Whilst SIBER is developed for fitting Baysian ellipses for stable isotope data it can be applied in the same way. TO get the figures to the standerd seen in the paper I used inkscape.
+
+
+```{r ellipse overlap}
+
+
+##Set up the data
+siber_pca_data <- pca_data[pca_data$class_match =="Actinopterygii" |
+                 pca_data$class_match == "Anthozoa"|
+                 pca_data$class_match == "Aves"|
+                 pca_data$class_match == "Gastropoda"|
+                 pca_data$class_match == "Mammalia"|
+                 pca_data$class_match == "Reptilia",]
+
+pca_data$PCA_iucn <- factor(pca_data$PCA_iucn, levels = c("NA", "CE", "E", "LC", "LR", "NT", "V"))
+pca_data$PCA_iucn[is.na(pca_data$PCA_iucn)] <- "NA"
+
+
+# Create lists of plotting arguments to be passed onwards to each 
+# of the three plotting functions.
+community.hulls.args <- list(col = 1, lty = 1, lwd = 1)
+
+group.ellipses.args  <- list(n = 100, p.interval = 0.95, 
+                             lty = 1, lwd = 2)
+
+group.hull.args      <- list(lty = 2, col = "grey20")
+
+```
+
+
+#Mode of life Ellipse
+```{r Mode of life Ellipse}
+
+
+sidmob <- data.frame(iso1 = pca_data$PC1,
+                     iso2 = pca_data$PC2,
+                     group = as.numeric(pca_data$PCA_moblist),
+                     community = rep(1,length(pca_data$class_match)))
+
+siber.mob <- createSiberObject(sidmob)
+
+
+#plot for mode-of-life
+plotSiberObject(siber.mob,
+                  ax.pad = 2, 
+                  hulls = F, community.hulls.args, 
+                  ellipses = T, group.ellipses.args,
+                  group.hulls = F, group.hull.args,
+                  bty = "L",
+                  iso.order = c(1,2),
+                  xlab = "PC1",
+                  ylab = "PC2"                  
+                )
+```
+
+
+
+
+
+#Taxinomic groupings Ellipse
+```{r taxinomic groupings Ellipse, warning  = F}
+
+sidpca <- data.frame(iso1 = siber_pca_data$PC1,
+                     iso2 = siber_pca_data$PC2,
+                     group = as.numeric(siber_pca_data$class_match),
+                     community = rep(1,length(siber_pca_data$class_match)))
+
+
+siber.plots <- createSiberObject(sidpca)
+
+#plot for taxa
+plotSiberObject(siber.plots,
+                  ax.pad = 2, 
+                  hulls = F, 
+                  community.hulls.args, 
+                  ellipses = T, 
+                  group.ellipses.args,
+                  group.hulls = T, 
+                  group.hull.args,
+                  bty = "L",
+                  iso.order = c(1,2),
+                  xlab = "PC1",
+                  ylab = "PC2"
+                  )
+
+
+
+```
+
+
+
+
+#Thermal groupings Ellipse
+```{r Thermal groupings Ellipse, warning  = F}
+
+
+sidtherm <- data.frame(iso1 = pca_data$PC1,
+                     iso2 = pca_data$PC2,
+                     group = as.numeric(pca_data$PCA_met_type),
+                     community = rep(1,length(pca_data$class_match)))
+
+
+siber.therm <- createSiberObject(sidtherm)
+
+#plot for ecto endo
+plotSiberObject(siber.therm,
+                  ax.pad = 2, 
+                  hulls = F, community.hulls.args, 
+                  ellipses = T, group.ellipses.args,
+                  group.hulls = F, group.hull.args,
+                  bty = "L",
+                  iso.order = c(1,2),
+                  xlab = "PC1",
+                  ylab = "PC2"
+                  )
+
+
+```
+
+
+#IUCN Ellipse
+```{r IUCN Ellipse, warning  = F}
+
+
+sired <- na.omit(data.frame(iso1 = pca_data$PC1,
+                     iso2 = pca_data$PC2,
+                     group = as.numeric(pca_data$PCA_iucn),
+                     community = rep(1,length(pca_data$class_match))))
+
+
+siber.iucn<- createSiberObject(sired)
+
+
+#plot for iucn
+plotSiberObject(siber.iucn,
+                  ax.pad = 2, 
+                  hulls = F, community.hulls.args, 
+                  ellipses = T, group.ellipses.args,
+                  group.hulls = F, group.hull.args,
+                  bty = "L",
+                  iso.order = c(1,2),
+                  xlab = "PC1",
+                  ylab = "PC2"
+                  )
+```
+
+
+
+
+#Ellipse overlap
+
+Using a Baysian resampling approach we see how much each of the elliplses overlap with each other and plot these out. These calculations require `jags`. For more see the `SIBER` package
+
+#Mode of life ellipse overlap
+```{r ellipse overlap mode of life}
+
+group.ML <- groupMetricsML(siber.plots)
+group.MLmob <- groupMetricsML(siber.mob)
+
+
+# options for running jags
+parms <- list()
+parms$n.iter <- 2 * 10^4   # number of iterations to run the model for
+parms$n.burnin <- 1 * 10^3 # discard the first set of values
+parms$n.thin <- 10     # thin the posterior by this many
+parms$n.chains <- 2        # run this many chains
+
+# define the priors
+priors <- list()
+priors$R <- 1 * diag(2)
+priors$k <- 2
+priors$tau.mu <- 1.0E-3
+
+
+
+ellipses.posterior_mob <- siberMVN(siber.mob, parms, priors)
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 1
+
+#ellipse group numbers
+ellipse_sessile <- "1.1" 
+ellipse_arboreal <- "1.2" 
+ellipse_benthic <- "1.3"
+ellipse_volant <- "1.4" 
+ellipse_semiaquatic <- "1.5" 
+ellipse_terrestrial <- "1.6"
+ellipse_pelagic <- "1.7"
+ellipse_semifossorial <- "1.8"
+
+
+#####sessile  - arboreal
+SA_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_arboreal, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+SA_95.overlap_prop <- vector()
+for(i in 1:length(SA_95.overlap$overlap)){
+
+SA_95.overlap_prop[i]  <- SA_95.overlap$overlap[i]/min(SA_95.overlap[i,1:2])
+  
+}
+
+#Plot
+hist(SA_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_SA = ggplot(data.frame(Overlap =  SA_95.overlap_prop),
+                    aes(Overlap)) + 
+                    geom_histogram(binwidth=0.1) + 
+                    ggtitle("Sessile  - Arboreal Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+
+myplot_SA + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####sessile  - benthic
+SB_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_benthic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+SB_95.overlap_prop <- vector()
+for(i in 1:length(SB_95.overlap$overlap)){
+
+SB_95.overlap_prop[i]  <- SB_95.overlap$overlap[i]/min(SB_95.overlap[i,1:2])
+  
+}
+
+hist(SB_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_SB = ggplot(data.frame(Overlap =  SB_95.overlap_prop),
+                   aes(Overlap)) +
+                   ggtitle("Sessile  - Demersal Overlap") +
+                   geom_histogram(binwidth=0.1) + 
+                   scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_SB + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+
+#####sessile  - volant
+Sv_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_volant, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Sv_95.overlap_prop <- vector()
+for(i in 1:length(Sv_95.overlap$overlap)){
+
+Sv_95.overlap_prop[i]  <- Sv_95.overlap$overlap[i]/min(Sv_95.overlap[i,1:2])
+  
+}
+
+hist(Sv_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Sv = ggplot(data.frame(Overlap =  Sv_95.overlap_prop),
+                   aes(Overlap)) +
+                   ggtitle("Sessile  - Volant Overlap") +
+                   geom_histogram(binwidth=0.1) + 
+                   scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Sv + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####sessile  - semiaquatic
+Ssem_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_semiaquatic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Ssem_95.overlap_prop <- vector()
+for(i in 1:length(Ssem_95.overlap$overlap)){
+
+Ssem_95.overlap_prop[i]  <- Ssem_95.overlap$overlap[i]/min(Ssem_95.overlap[i,1:2])
+  
+}
+
+hist(Ssem_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Ssem = ggplot(data.frame(Overlap =  Ssem_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Sessile  - Semiaquatic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Ssem + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+#####sessile  - terrestrial
+
+St_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_terrestrial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+St_95.overlap_prop <- vector()
+for(i in 1:length(St_95.overlap$overlap)){
+
+St_95.overlap_prop[i]  <- St_95.overlap$overlap[i]/min(St_95.overlap[i,1:2])
+  
+}
+
+hist(St_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_St = ggplot(data.frame(Overlap =  St_95.overlap_prop),
+                    aes(Overlap)) +
+                    geom_histogram(binwidth=0.1) + 
+                    ggtitle("Sessile  - terrestrial Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_St + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+
+#####sessile  - pelagic
+Sp_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_pelagic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Sp_95.overlap_prop <- vector()
+for(i in 1:length(Sp_95.overlap$overlap)){
+
+Sp_95.overlap_prop[i]  <- Sp_95.overlap$overlap[i]/min(Sp_95.overlap[i,1:2])
+  
+}
+
+hist(Sp_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Sp = ggplot(data.frame(Overlap =  Sp_95.overlap_prop),
+                    aes(Overlap)) +
+                    geom_histogram(binwidth=0.1) + 
+                    ggtitle("Sessile  - pelagic Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Sp + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####sessile  - semifossorial
+Ssf_95.overlap <- bayesianOverlap(ellipse_sessile, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Ssf_95.overlap_prop <- vector()
+for(i in 1:length(Ssf_95.overlap$overlap)){
+
+Ssf_95.overlap_prop[i]  <- Ssf_95.overlap$overlap[i]/min(Ssf_95.overlap[i,1:2])
+  
+}
+
+hist(Ssf_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Ssf = ggplot(data.frame(Overlap =  Ssf_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Sessile  - semifossorial Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Ssf + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+#####arboreal  - demersal
+Ab_95.overlap <- bayesianOverlap(ellipse_arboreal, 
+                                   ellipse_benthic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Ab_95.overlap_prop <- vector()
+for(i in 1:length(Ab_95.overlap$overlap)){
+
+Ab_95.overlap_prop[i]  <- Ab_95.overlap$overlap[i]/min(Ab_95.overlap[i,1:2])
+  
+}
+
+hist(Ab_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Ab = ggplot(data.frame(Overlap =  Ab_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Arboreal  - demersal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Ab + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####arboreal  - volant
+Av_95.overlap <- bayesianOverlap(ellipse_arboreal, 
+                                   ellipse_volant, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Av_95.overlap_prop <- vector()
+for(i in 1:length(Av_95.overlap$overlap)){
+
+Av_95.overlap_prop[i]  <- Av_95.overlap$overlap[i]/min(Av_95.overlap[i,1:2])
+  
+}
+
+hist(Av_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Av = ggplot(data.frame(Overlap =  Av_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Arboreal  - volant Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Av + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+#####arboreal  - semiaquatic
+Asemi_95.overlap <- bayesianOverlap(ellipse_arboreal, 
+                                   ellipse_semiaquatic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Asemi_95.overlap_prop <- vector()
+for(i in 1:length(Av_95.overlap$overlap)){
+
+Asemi_95.overlap_prop[i]  <- Asemi_95.overlap$overlap[i]/min(Asemi_95.overlap[i,1:2])
+  
+}
+
+hist(Asemi_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Asemi = ggplot(data.frame(Overlap =  Asemi_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Arboreal  - semiaquatic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Asemi + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+#####arboreal  - terrestrial
+At_95.overlap <- bayesianOverlap(ellipse_arboreal, 
+                                   ellipse_terrestrial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+At_95.overlap_prop <- vector()
+for(i in 1:length(At_95.overlap$overlap)){
+
+At_95.overlap_prop[i]  <- At_95.overlap$overlap[i]/min(At_95.overlap[i,1:2])
+  
+}
+
+hist(At_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_At = ggplot(data.frame(Overlap =  At_95.overlap_prop),
+                    aes(Overlap)) +
+                    geom_histogram(binwidth=0.1) + 
+                    ggtitle("Arboreal  - terrestrial Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_At + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####arboreal  - pelagic
+Ap_95.overlap <- bayesianOverlap(ellipse_arboreal, 
+                                   ellipse_pelagic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Ap_95.overlap_prop <- vector()
+for(i in 1:length(Ap_95.overlap$overlap)){
+
+Ap_95.overlap_prop[i]  <- Ap_95.overlap$overlap[i]/min(Ap_95.overlap[i,1:2])
+  
+}
+
+hist(Ap_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Ap = ggplot(data.frame(Overlap =  Ap_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Arboreal  - pelagic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Ap + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+#####arboreal  - semifossorial
+Afoss_95.overlap <- bayesianOverlap(ellipse_arboreal, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Afoss_95.overlap_prop <- vector()
+for(i in 1:length(Afoss_95.overlap$overlap)){
+
+Afoss_95.overlap_prop[i]  <- Afoss_95.overlap$overlap[i]/min(Afoss_95.overlap[i,1:2])
+  
+}
+
+hist(Afoss_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Afoss = ggplot(data.frame(Overlap =  Afoss_95.overlap_prop),
+                    aes(Overlap)) +
+                      ggtitle("Arboreal  - semifossorial Overlap") +
+
+  geom_histogram(binwidth=0.1) + 
+  scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Afoss + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+
+#####benthic  - volant
+Bv_95.overlap <- bayesianOverlap(ellipse_benthic, 
+                                   ellipse_volant, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Bv_95.overlap_prop <- vector()
+for(i in 1:length(Bv_95.overlap$overlap)){
+
+Bv_95.overlap_prop[i]  <- Bv_95.overlap$overlap[i]/min(Bv_95.overlap[i,1:2])
+  
+}
+
+hist(Bv_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Bv = ggplot(data.frame(Overlap =  Bv_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Demersal  - volant Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Bv + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+#####benthic  - semiaquatic
+Bsemia_95.overlap <- bayesianOverlap(ellipse_benthic, 
+                                   ellipse_semiaquatic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Bsemia_95.overlap_prop <- vector()
+for(i in 1:length(Bsemia_95.overlap$overlap)){
+
+Bsemia_95.overlap_prop[i]  <- Bsemia_95.overlap$overlap[i]/min(Bsemia_95.overlap[i,1:2])
+  
+}
+
+hist(Bsemia_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Bsemia = ggplot(data.frame(Overlap =  Bsemia_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Demersal  - semiaquatic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Bsemia + theme_bw() + theme(panel.border = element_blank(), 
+                                   panel.grid.major = element_blank(),
+                                   panel.grid.minor = element_blank(), 
+                                   axis.line = element_line(colour = "black"),
+                                   text = element_text(size=20))
+
+
+
+#####benthic  - terrestrial
+Bt_95.overlap <- bayesianOverlap(ellipse_benthic, 
+                                   ellipse_terrestrial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Bt_95.overlap_prop <- vector()
+for(i in 1:length(Bt_95.overlap$overlap)){
+
+Bt_95.overlap_prop[i]  <- Bt_95.overlap$overlap[i]/min(Bt_95.overlap[i,1:2])
+  
+}
+
+hist(Bt_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Bt = ggplot(data.frame(Overlap =  Bt_95.overlap_prop),
+                    aes(Overlap)) +
+                      ggtitle("Demersal  - terrestrial Overlap") +
+
+  geom_histogram(binwidth=0.1) + 
+  scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Bt + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####benthic  - pelagic
+Bp_95.overlap <- bayesianOverlap(ellipse_benthic, 
+                                   ellipse_pelagic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Bp_95.overlap_prop <- vector()
+for(i in 1:length(Bp_95.overlap$overlap)){
+
+Bp_95.overlap_prop[i]  <- Bp_95.overlap$overlap[i]/min(Bp_95.overlap[i,1:2])
+  
+}
+
+hist(Bp_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Bp = ggplot(data.frame(Overlap =  Bp_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Demersal  - pelagic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+
+myplot_Bp + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+
+
+#####benthic  - semifossorial
+Bfoss_95.overlap <- bayesianOverlap(ellipse_benthic, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Bfoss_95.overlap_prop <- vector()
+for(i in 1:length(Bfoss_95.overlap$overlap)){
+
+Bfoss_95.overlap_prop[i]  <- Bfoss_95.overlap$overlap[i]/min(Bfoss_95.overlap[i,1:2])
+  
+}
+
+hist(Bfoss_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Bfoss = ggplot(data.frame(Overlap =  Bfoss_95.overlap_prop),
+                      aes(Overlap)) +
+                      ggtitle("Demersal  - semifossorial Overlap") +
+                      geom_histogram(binwidth=0.1) + 
+                      scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Bfoss + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+
+
+
+#####volant  - semiaquatic
+Vsem_95.overlap <- bayesianOverlap(ellipse_volant, 
+                                   ellipse_semiaquatic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Vsem_95.overlap_prop <- vector()
+for(i in 1:length(Vsem_95.overlap$overlap)){
+
+Vsem_95.overlap_prop[i]  <- Vsem_95.overlap$overlap[i]/min(Vsem_95.overlap[i,1:2])
+  
+}
+
+hist(Vsem_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Vsem = ggplot(data.frame(Overlap =  Vsem_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Volant  - semiaquatic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+
+myplot_Vsem + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+
+
+#####volant  - terrestrial
+Vt_95.overlap <- bayesianOverlap(ellipse_volant, 
+                                   ellipse_terrestrial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Vt_95.overlap_prop <- vector()
+for(i in 1:length(Vt_95.overlap$overlap)){
+
+Vt_95.overlap_prop[i]  <- Vt_95.overlap$overlap[i]/min(Vt_95.overlap[i,1:2])
+  
+}
+
+hist(Vt_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Vt = ggplot(data.frame(Overlap =  Vt_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("volant  - terrestrial Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Vt + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+#####volant  - pelagic
+Vp_95.overlap <- bayesianOverlap(ellipse_volant, 
+                                   ellipse_pelagic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+Vp_95.overlap_prop <- vector()
+for(i in 1:length(Vp_95.overlap$overlap)){
+
+Vp_95.overlap_prop[i]  <- Vp_95.overlap$overlap[i]/min(Vp_95.overlap[i,1:2])
+  
+}
+
+hist(Vp_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Vp = ggplot(data.frame(Overlap =  Vp_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Volant  - pelagic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Vp + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+
+#####volant  - semifossorial
+Vsfoss_95.overlap <- bayesianOverlap(ellipse_volant, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Vsfoss_95.overlap_prop <- vector()
+for(i in 1:length(Vsfoss_95.overlap$overlap)){
+
+Vsfoss_95.overlap_prop[i]  <- Vsfoss_95.overlap$overlap[i]/min(Vsfoss_95.overlap[i,1:2])
+  
+}
+
+hist(Vsfoss_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Vsfoss = ggplot(data.frame(Overlap = Vsfoss_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Demersal  - semiaquatic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Vsfoss + theme_bw() + theme(panel.border = element_blank(), 
+                                   panel.grid.major = element_blank(),
+                                   panel.grid.minor = element_blank(), 
+                                   axis.line = element_line(colour = "black"),
+                                   text = element_text(size=20))
+
+
+
+#####semiaquatic  - terrestrial
+SAt_95.overlap <- bayesianOverlap(ellipse_semiaquatic, 
+                                   ellipse_terrestrial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+SAt_95.overlap_prop <- vector()
+for(i in 1:length(SAt_95.overlap$overlap)){
+
+SAt_95.overlap_prop[i]  <- SAt_95.overlap$overlap[i]/min(SAt_95.overlap[i,1:2])
+  
+}
+
+hist(SAt_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_SAt = ggplot(data.frame(Overlap = SAt_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Semiaquatic  - terrestrial Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_SAt + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+#####semiaquatic  - pelagic
+SAp_95.overlap <- bayesianOverlap(ellipse_semiaquatic, 
+                                   ellipse_pelagic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+SAp_95.overlap_prop <- vector()
+for(i in 1:length(SAp_95.overlap$overlap)){
+
+SAp_95.overlap_prop[i]  <- SAp_95.overlap$overlap[i]/min(SAp_95.overlap[i,1:2])
+  
+}
+
+hist(SAp_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_SAp = ggplot(data.frame(Overlap = SAp_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Semiaquatic  - pelagic Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_SAp + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+#####semiaquatic  - semifossorial
+SAsfoss_95.overlap <- bayesianOverlap(ellipse_semiaquatic, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+SAsfoss_95.overlap_prop <- vector()
+for(i in 1:length(SAsfoss_95.overlap$overlap)){
+
+SAsfoss_95.overlap_prop[i]  <- SAsfoss_95.overlap$overlap[i]/min(SAsfoss_95.overlap[i,1:2])
+  
+}
+
+hist(SAsfoss_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_SAsfoss = ggplot(data.frame(Overlap = SAsfoss_95.overlap_prop),
+                    aes(Overlap)) +
+                        ggtitle("Semiaquatic  - semifossorial Overlap") +
+                        geom_histogram(binwidth=0.1) + 
+                        scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_SAsfoss + theme_bw() + theme(panel.border = element_blank(), 
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(), 
+                                    axis.line = element_line(colour = "black"),
+                                    text = element_text(size=20))
+
+
+
+
+#####terrestrial  - pelagic
+Tp_95.overlap <- bayesianOverlap(ellipse_terrestrial, 
+                                   ellipse_pelagic, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Tp_95.overlap_prop <- vector()
+for(i in 1:length(Tp_95.overlap$overlap)){
+
+Tp_95.overlap_prop[i]  <- Tp_95.overlap$overlap[i]/min(Tp_95.overlap[i,1:2])
+  
+}
+
+hist(Tp_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Tp = ggplot(data.frame(Overlap = Tp_95.overlap_prop),
+                    aes(Overlap)) +
+                    geom_histogram(binwidth=0.1) + 
+                    ggtitle("terrestrial  - pelagic Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Tp + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+#####terrestrial  - semifossorial
+Tfoss_95.overlap <- bayesianOverlap(ellipse_terrestrial, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Tfoss_95.overlap_prop <- vector()
+for(i in 1:length(Tfoss_95.overlap$overlap)){
+
+Tfoss_95.overlap_prop[i]  <- Tfoss_95.overlap$overlap[i]/min(Tfoss_95.overlap[i,1:2])
+  
+}
+
+hist(Tfoss_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Tfoss = ggplot(data.frame(Overlap = Tfoss_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("terrestrial  - semifossorial Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Tfoss + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+
+#####pelagic  - semifossorial
+Psfoss_95.overlap <- bayesianOverlap(ellipse_pelagic, 
+                                   ellipse_semifossorial, 
+                                   ellipses.posterior_mob,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+Psfoss_95.overlap_prop <- vector()
+for(i in 1:length(Psfoss_95.overlap$overlap)){
+
+Psfoss_95.overlap_prop[i]  <- Psfoss_95.overlap$overlap[i]/min(Psfoss_95.overlap[i,1:2])
+  
+}
+
+hist(Psfoss_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_Psfoss = ggplot(data.frame(Overlap = Psfoss_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("terrestrial  - semifossorial Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Psfoss + theme_bw() + theme(panel.border = element_blank(), 
+                                   panel.grid.major = element_blank(),
+                                   panel.grid.minor = element_blank(), 
+                                   axis.line = element_line(colour = "black"),
+                                   text = element_text(size=20))
+
+```
+
+
+#Ellipse overlap calculations for taxa
+```{r ellipse overlap taxa}
+
+group.MLtaxa <- groupMetricsML(siber.plots)
+group.MLmob <- groupMetricsML(siber.mob)
+
+
+# options for running jags
+parms <- list()
+parms$n.iter <- 2 * 10^4   # number of iterations to run the model for
+parms$n.burnin <- 1 * 10^3 # discard the first set of values
+parms$n.thin <- 10     # thin the posterior by this many
+parms$n.chains <- 2        # run this many chains
+
+# define the priors
+priors <- list()
+priors$R <- 1 * diag(2)
+priors$k <- 2
+priors$tau.mu <- 1.0E-3
+
+
+
+ellipses.posterior <- siberMVN(siber.plots, 
+                               parms, 
+                               priors)
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 1
+
+#Actinopterygii
+ellipse_Actinopterygii <- "1.1" 
+
+#Anthozoa
+ellipse_Anthozoa <- "1.2" 
+
+#Aves
+ellipse_Aves <- "1.3"
+
+#Gastropoda
+ellipse_Gastropoda <- "1.7" 
+
+#Mammalia
+ellipse_Mammalia <- "1.8" 
+
+#Reptilia
+ellipse_Reptilia <- "1.9"
+
+
+#####fish - coral
+AAn_95.overlap <- bayesianOverlap(ellipse_Actinopterygii, 
+                                   ellipse_Anthozoa, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+AAn_95_overlap_prop <- vector()
+for(i in 1:length(AAn_95.overlap$overlap)){
+
+AAn_95_overlap_prop[i]  <- AAn_95.overlap$overlap[i]/min(AAn_95.overlap[i,1:2])
+  
+}
+
+hist(AAn_95_overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_AAn = ggplot(data.frame(Overlap =  AAn_95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Fish  - Coral Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AAn + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+#####fish - aves
+AAv95.overlap <- bayesianOverlap(ellipse_Actinopterygii, 
+                                   ellipse_Aves, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AAv_95_overlap_prop <- vector()
+for(i in 1:length(AAv95.overlap$overlap)){
+
+AAv_95_overlap_prop[i]  <- AAv95.overlap$overlap[i]/min(AAv95.overlap[i,1:2])
+  
+}
+
+hist(AAv_95_overlap_prop, xlab = "Proportion of overlap", main = "", xlim = c(0,1))
+hdr(AAv_95_overlap_prop)
+
+myplot_Aav = ggplot(data.frame(Overlap =  AAv_95_overlap_prop),
+                    aes(Overlap)) +
+                    geom_histogram(binwidth=0.1) +
+                    ggtitle("Fish  - Aves Overlap") +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_Aav + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+#####fish - gastropod
+AG95.overlap <- bayesianOverlap(ellipse_Actinopterygii, 
+                                   ellipse_Gastropoda, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AG_95_overlap_prop <- vector()
+for(i in 1:length(AG95.overlap$overlap)){
+
+AG_95_overlap_prop[i]  <- AG95.overlap$overlap[i]/min(AG95.overlap[i,1:2])
+  
+}
+
+
+myplot_AG = ggplot(data.frame(Overlap =  AG_95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Fish  - Gastropod Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AG + theme_bw() + theme(panel.border = element_blank(),
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+##fish - mammal
+AM95.overlap <- bayesianOverlap(ellipse_Actinopterygii, 
+                                   ellipse_Mammalia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+Am_95_overlap_prop <- vector()
+for(i in 1:length(AM95.overlap$overlap)){
+
+Am_95_overlap_prop[i]  <- AM95.overlap$overlap[i]/min(AM95.overlap[i,1:2])
+  
+}
+
+myplot_AM = ggplot(data.frame(Overlap =  Am_95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Fish  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AM + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+###fish and reptiles
+AR95.overlap <- bayesianOverlap(ellipse_Actinopterygii, 
+                                   ellipse_Reptilia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AR_95_overlap_prop <- vector()
+for(i in 1:length(AR95.overlap$overlap)){
+
+AR_95_overlap_prop[i]  <- AR95.overlap$overlap[i]/min(AR95.overlap[i,1:2])
+  
+}
+
+myplot_AR = ggplot(data.frame(Overlap =  AR_95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Fish  - Reptiles Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AR + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+###coral-gastropod
+AnG95.overlap <- bayesianOverlap(ellipse_Anthozoa, 
+                                   ellipse_Gastropoda, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AnG95_overlap_prop <- vector()
+for(i in 1:length(AnG95.overlap$overlap)){
+
+AnG95_overlap_prop[i]  <- AnG95.overlap$overlap[i]/min(AnG95.overlap[i,1:2])
+  
+}
+
+myplot_AnG = ggplot(data.frame(Overlap =  AnG95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Coral  - Gastropods Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AnG + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+##coral mammal
+AnM95.overlap <- bayesianOverlap(ellipse_Anthozoa, 
+                                   ellipse_Mammalia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+
+AnM95_overlap_prop <- vector()
+for(i in 1:length(AnG95.overlap$overlap)){
+
+AnM95_overlap_prop[i]  <- AnM95.overlap$overlap[i]/min(AnM95.overlap[i,1:2])
+  
+}
+
+myplot_AnM = ggplot(data.frame(Overlap =  AnM95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Coral  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AnM + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+##coral reptile
+AnR95.overlap <- bayesianOverlap(ellipse_Anthozoa, 
+                                   ellipse_Reptilia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+
+AnR95_overlap_prop <- vector()
+for(i in 1:length(AnR95.overlap$overlap)){
+
+AnR95_overlap_prop[i]  <- AnR95.overlap$overlap[i]/min(AnR95.overlap[i,1:2])
+  
+}
+
+myplot_AnR = ggplot(data.frame(Overlap =  AnR95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Coral  - Reptile Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AnR + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+###bird - gastropd
+
+AvG95.overlap <- bayesianOverlap(ellipse_Aves, 
+                                   ellipse_Gastropoda, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AvG95_overlap_prop <- vector()
+for(i in 1:length(AvG95.overlap$overlap)){
+
+AvG95_overlap_prop[i]  <- AvG95.overlap$overlap[i]/min(AvG95.overlap[i,1:2])
+  
+}
+
+myplot_AvG = ggplot(data.frame(Overlap =  AvG95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Aves  - Gastropod Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AvG + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+####aves mammal
+AvM95.overlap <- bayesianOverlap(ellipse_Aves, 
+                                   ellipse_Mammalia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AvM95_overlap_prop <- vector()
+for(i in 1:length(AvM95.overlap$overlap)){
+
+AvM95_overlap_prop[i]  <- AvM95.overlap$overlap[i]/min(AvM95.overlap[i,1:2])
+  
+}
+
+myplot_AvM = ggplot(data.frame(Overlap =  AvM95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Aves  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AvM + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+##### Aves reptile
+
+AvRR95.overlap <- bayesianOverlap(ellipse_Aves, 
+                                   ellipse_Reptilia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AvR95_overlap_prop <- vector()
+for(i in 1:length(AvRR95.overlap$overlap)){
+
+AvR95_overlap_prop[i]  <- AvRR95.overlap$overlap[i]/min(AvRR95.overlap[i,1:2])
+  
+}
+
+myplot_AvR = ggplot(data.frame(Overlap =  AvR95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Aves  - Reptile Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AvR + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+
+##### reptile gastropod
+
+RG95.overlap <- bayesianOverlap(ellipse_Reptilia, 
+                                   ellipse_Gastropoda, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+RG95_overlap_prop <- vector()
+for(i in 1:length(RG95.overlap$overlap)){
+
+RG95_overlap_prop[i]  <- RG95.overlap$overlap[i]/min(RG95.overlap[i,1:2])
+  
+}
+
+myplot_RG = ggplot(data.frame(Overlap =  RG95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Reptile  - Gastropod Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_RG + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+##### Aves coral
+
+AvAn95.overlap <- bayesianOverlap(ellipse_Aves, 
+                                   ellipse_Anthozoa, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+AvAn95_overlap_prop <- vector()
+for(i in 1:length(AvAn95.overlap$overlap)){
+
+AvAn95_overlap_prop[i]  <- AvAn95.overlap$overlap[i]/min(AvAn95.overlap[i,1:2])
+  
+}
+
+myplot_AvAn = ggplot(data.frame(Overlap =  AvAn95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Aves  - Coral Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_AvAn + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+##### reptile mammal
+
+RM95.overlap <- bayesianOverlap(ellipse_Mammalia, 
+                                   ellipse_Reptilia, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+RM95_overlap_prop <- vector()
+for(i in 1:length(RG95.overlap$overlap)){
+
+RM95_overlap_prop[i]  <- RM95.overlap$overlap[i]/min(RM95.overlap[i,1:2])
+  
+}
+
+myplot_RM = ggplot(data.frame(Overlap =  RM95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Reptile  - Mammal Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_RM + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+
+#####  mammal gastropod
+
+MG95.overlap <- bayesianOverlap(ellipse_Mammalia, 
+                                   ellipse_Gastropoda, 
+                                   ellipses.posterior,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+
+MG95_overlap_prop <- vector()
+for(i in 1:length(RG95.overlap$overlap)){
+
+MG95_overlap_prop[i]  <- MG95.overlap$overlap[i]/min(MG95.overlap[i,1:2])
+  
+}
+
+myplot_MG = ggplot(data.frame(Overlap =  MG95_overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Mammal  - Gastropod Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_MG + theme_bw() + theme(panel.border = element_blank(), 
+                               panel.grid.major = element_blank(),
+                               panel.grid.minor = element_blank(), 
+                               axis.line = element_line(colour = "black"),
+                               text = element_text(size=20))
+
+
+```
+
+
+
+
+#IUCN  overlap calculations for mode of life
+```{r ellipse overlap iucn}
+
+group.ML <- groupMetricsML(siber.plots)
+group.ML_iucn <- groupMetricsML(siber.iucn)
+
+
+# options for running jags
+parms <- list()
+parms$n.iter <- 2 * 10^4   # number of iterations to run the model for
+parms$n.burnin <- 1 * 10^3 # discard the first set of values
+parms$n.thin <- 10     # thin the posterior by this many
+parms$n.chains <- 2        # run this many chains
+
+# define the priors
+priors <- list()
+priors$R <- 1 * diag(2)
+priors$k <- 2
+priors$tau.mu <- 1.0E-3
+
+
+
+ellipses.posterior_iucn <- siberMVN(siber.iucn, parms, priors)
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 1
+
+
+#ellipse group numbers
+ellipse_NA <- "1.1" 
+ellipse_CE <- "1.2" 
+ellipse_E <- "1.3"
+ellipse_LC <- "1.4" 
+ellipse_LR <- "1.5" 
+ellipse_NT <- "1.6"
+ellipse_V <- "1.7"
+
+
+#####LC  - NT
+LC_NT_95.overlap <- bayesianOverlap(ellipse_LC, 
+                                   ellipse_E, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+LC_NT_95.overlap_prop <- vector()
+for(i in 1:length(LC_NT_95.overlap$overlap)){
+
+LC_NT_95.overlap_prop[i]  <- LC_NT_95.overlap$overlap[i]/min(LC_NT_95.overlap[i,1:2])
+  
+}
+
+hist(LC_NT_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_LC_NT = ggplot(data.frame(Overlap =  LC_NT_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Least concerned  - None threatened Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+
+myplot_LC_NT + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+
+
+#####LC  - V
+LC_V_95.overlap <- bayesianOverlap(ellipse_LC, 
+                                   ellipse_V, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+LC_V_95.overlap_prop <- vector()
+for(i in 1:length(LC_V_95.overlap$overlap)){
+
+LC_V_95.overlap_prop[i]  <- LC_V_95.overlap$overlap[i]/min(LC_V_95.overlap[i,1:2])
+  
+}
+
+hist(LC_V_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_LC_V = ggplot(data.frame(Overlap =  LC_V_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Least concerned  - Vulnerable Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_LC_V + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+
+
+#####LC  - E
+LC_E_95.overlap <- bayesianOverlap(ellipse_LC, 
+                                   ellipse_E, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+LC_E_95.overlap_prop <- vector()
+for(i in 1:length(LC_E_95.overlap$overlap)){
+
+LC_E_95.overlap_prop[i]  <- LC_E_95.overlap$overlap[i]/min(LC_E_95.overlap[i,1:2])
+  
+}
+
+hist(LC_E_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_LC_E = ggplot(data.frame(Overlap =  LC_E_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Least concerned  - Endangered Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_LC_E + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+
+#####LC  - CE
+LC_CE_95.overlap <- bayesianOverlap(ellipse_LC, 
+                                   ellipse_CE, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+LC_CE_95.overlap_prop <- vector()
+for(i in 1:length(LC_CE_95.overlap$overlap)){
+
+LC_CE_95.overlap_prop[i]  <- LC_CE_95.overlap$overlap[i]/min(LC_CE_95.overlap[i,1:2])
+  
+}
+
+hist(LC_CE_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_LC_CE = ggplot(data.frame(Overlap =  LC_CE_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Least concerned  - Critically endangered Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_LC_CE + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+
+
+#####NT  - V
+NT_V_95.overlap <- bayesianOverlap(ellipse_NT, 
+                                   ellipse_V, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+NT_V_95.overlap_prop <- vector()
+for(i in 1:length(NT_V_95.overlap$overlap)){
+
+NT_V_95.overlap_prop[i]  <- NT_V_95.overlap$overlap[i]/min(NT_V_95.overlap[i,1:2])
+  
+}
+
+hist(NT_V_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_NT_V = ggplot(data.frame(Overlap =  NT_V_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Near Theatened  - Vulnerable Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_NT_V + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+#####NT  - E
+NT_E_95.overlap <- bayesianOverlap(ellipse_NT, 
+                                   ellipse_E, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+NT_E_95.overlap_prop <- vector()
+for(i in 1:length(NT_E_95.overlap$overlap)){
+
+NT_E_95.overlap_prop[i]  <- NT_E_95.overlap$overlap[i]/min(NT_E_95.overlap[i,1:2])
+  
+}
+
+hist(NT_E_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_NT_E = ggplot(data.frame(Overlap =  NT_E_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Near Theatened  - Endangered Overlap") +
+                    geom_histogram(binwidth=0.1) +
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_NT_E + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+#####NT  - CE
+NT_CE_95.overlap <- bayesianOverlap(ellipse_NT, 
+                                   ellipse_CE, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+NT_CE_95.overlap_prop <- vector()
+for(i in 1:length(NT_CE_95.overlap$overlap)){
+
+NT_CE_95.overlap_prop[i]  <- NT_CE_95.overlap$overlap[i]/min(NT_CE_95.overlap[i,1:2])
+  
+}
+
+hist(NT_CE_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_NT_CE = ggplot(data.frame(Overlap =  NT_CE_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Near Theatened  - Critically Endangered Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_NT_CE + theme_bw() + theme(panel.border = element_blank(), 
+                                  panel.grid.major = element_blank(),
+                                  panel.grid.minor = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  text = element_text(size=20))
+
+
+
+#####E  - CE
+E_CE_95.overlap <- bayesianOverlap(ellipse_E, 
+                                   ellipse_CE, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+E_CE_95.overlap_prop <- vector()
+for(i in 1:length(E_CE_95.overlap$overlap)){
+
+E_CE_95.overlap_prop[i]  <- E_CE_95.overlap$overlap[i]/min(E_CE_95.overlap[i,1:2])
+  
+}
+
+hist(E_CE_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_E_CE = ggplot(data.frame(Overlap =  E_CE_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Endangered  - Critically Endangered Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_E_CE + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+#####E  - V
+E_V_95.overlap <- bayesianOverlap(ellipse_E, 
+                                   ellipse_V, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+E_V_95.overlap_prop <- vector()
+for(i in 1:length(E_V_95.overlap$overlap)){
+
+E_V_95.overlap_prop[i]  <- E_V_95.overlap$overlap[i]/min(E_V_95.overlap[i,1:2])
+  
+}
+
+hist(E_V_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_E_V = ggplot(data.frame(Overlap =  E_V_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Endangered  - Vulnerable Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_E_V + theme_bw() + theme(panel.border = element_blank(), 
+                                panel.grid.major = element_blank(),
+                                panel.grid.minor = element_blank(), 
+                                axis.line = element_line(colour = "black"),
+                                text = element_text(size=20))
+
+
+
+
+#####CE  - V
+CE_V_95.overlap <- bayesianOverlap(ellipse_CE, 
+                                   ellipse_V, 
+                                   ellipses.posterior_iucn,
+                                   draws = 100, 
+                                   p.interval = 0.95, 
+                                   n = 100)
+CE_V_95.overlap_prop <- vector()
+for(i in 1:length(CE_V_95.overlap$overlap)){
+
+CE_V_95.overlap_prop[i]  <- CE_V_95.overlap$overlap[i]/min(CE_V_95.overlap[i,1:2])
+  
+}
+
+hist(CE_V_95.overlap_prop, xlab = "Proportion of overlap", main = "")
+
+myplot_CE_V = ggplot(data.frame(Overlap =  CE_V_95.overlap_prop),
+                    aes(Overlap)) +
+                    ggtitle("Critically Endangered  - Vulnerable Overlap") +
+                    geom_histogram(binwidth=0.1) + 
+                    scale_x_continuous(limits = c(-0.05, 1.05))
+
+myplot_CE_V + theme_bw() + theme(panel.border = element_blank(), 
+                                 panel.grid.major = element_blank(),
+                                 panel.grid.minor = element_blank(), 
+                                 axis.line = element_line(colour = "black"),
+                                 text = element_text(size=20))
+
+
+```
+
+
+
+
+#Juvinal Survival versus SD of mortality
+
+```{r Juvinal Survival versus SD of mortality}     
+
+prior<-list(R = list(V = 1/2, nu=0.002), 
+            G = list(G1=list(V = 1/2,n = 1, alpha.mu=rep(0,1), alpha.V= diag(1)*10^3), 
+                     G1=list(V = 1/2,n = 1, alpha.mu=rep(0,1), alpha.V= diag(1)*10^3)))
+
+juv_data <- data.frame(surv_sd = as.vector(pop_data$surv_sd),
+                       prop_la = as.vector(pop_data$prop_la),
+                       animal = pop_data$animal,
+                       species = pop_data$species)
+
+
+
+
+j_surv <- MCMCglmm(prop_la ~ surv_sd,
+                     data = juv_data,
+                     random=~animal + species,
+                     pedigree = axis_trees[[1]], 
+                     prior = prior, 
+                     nitt = c(110000), burnin = 10000, thin = 50, verbose = F)
+
+summary(j_surv)
+
+j_surv_vcv_phylo <- j_surv$VCV[,1]
+j_surv_vcv_spec <- j_surv$VCV[,2]
+j_surv_vcv_units <- j_surv$VCV[,3]
+
+j_surv_phylo <- j_surv_vcv_phylo/c(j_surv_vcv_phylo + j_surv_vcv_spec + j_surv_vcv_units)
+j_surv_spec <- j_surv_vcv_spec/c(j_surv_vcv_phylo + j_surv_vcv_spec + j_surv_vcv_units)
+j_surv_units <- j_surv_vcv_units/c(j_surv_vcv_phylo + j_surv_vcv_spec + j_surv_vcv_units)
+
+hdr(j_surv_phylo)$mode
+hdr(j_surv_spec)$mode
+hdr(j_surv_units)$mode
+
+
+```
 
